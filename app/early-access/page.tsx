@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import Button from "@/components/shared/Button";
 import Input from "@/components/shared/Input";
-import { MailPlus, Trash2, Plus } from "lucide-react";
+import { MailPlus, Trash2, Plus, X } from "lucide-react";
 
 interface EarlyAccessEmail {
   id: string;
@@ -20,6 +20,7 @@ export default function EarlyAccessPage() {
   const router = useRouter();
   const [emails, setEmails] = useState<EarlyAccessEmail[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newEmail, setNewEmail] = useState("");
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState("");
@@ -53,8 +54,7 @@ export default function EarlyAccessPage() {
     fetchEmails();
   }, [admin]);
 
-  const handleAdd = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAdd = async () => {
     setError("");
     setAdding(true);
 
@@ -74,6 +74,7 @@ export default function EarlyAccessPage() {
         }
       } else {
         setNewEmail("");
+        setIsAddModalOpen(false);
         await fetchEmails();
       }
     } catch (err: any) {
@@ -101,28 +102,19 @@ export default function EarlyAccessPage() {
         <MailPlus className="w-6 h-6 text-primary" />
         <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Early Access</h1>
         <span className="text-sm text-gray-500 dark:text-gray-400 ml-auto">{emails.length} emails</span>
-      </div>
-
-      <form onSubmit={handleAdd} className="flex gap-3">
-        <div className="flex-1">
-          <Input
-            type="email"
-            placeholder="Add email to early access list..."
-            value={newEmail}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewEmail(e.target.value)}
-            required
-          />
-        </div>
-        <Button type="submit" isLoading={adding} icon={<Plus className="w-4 h-4" />} disabled={!newEmail.trim()}>
+        <Button
+          type="button"
+          size="sm"
+          icon={<Plus className="w-4 h-4" />}
+          onClick={() => {
+            setError("");
+            setNewEmail("");
+            setIsAddModalOpen(true);
+          }}
+        >
           Add
         </Button>
-      </form>
-
-      {error && (
-        <div className="p-3 bg-red-400/20 border border-red-400/50 rounded-lg text-red-400 text-sm">
-          {error}
-        </div>
-      )}
+      </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
         <table className="w-full text-sm">
@@ -154,13 +146,96 @@ export default function EarlyAccessPage() {
             {emails.length === 0 && (
               <tr>
                 <td colSpan={3} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
-                  No emails on the early access list yet. Add one above.
+                  No emails on the early access list yet. Add one with the button above.
                 </td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
+
+      {isAddModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !adding) {
+              setIsAddModalOpen(false);
+              setError("");
+              setNewEmail("");
+            }
+          }}
+        >
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
+          <div className="relative z-10 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-md">
+            <button
+              onClick={() => {
+                setIsAddModalOpen(false);
+                setError("");
+                setNewEmail("");
+              }}
+              disabled={adding}
+              className="absolute top-4 right-4 p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+              title="Close"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="p-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Add Early Access Email</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                Add a new email to the early access list.
+              </p>
+
+              {error && (
+                <div className="mt-4 p-3 bg-red-400/20 border border-red-400/50 rounded-lg text-red-400 text-sm">
+                  {error}
+                </div>
+              )}
+
+              <form
+                className="mt-4 space-y-4"
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  await handleAdd();
+                }}
+              >
+                <Input
+                  type="email"
+                  placeholder="user@example.com"
+                  value={newEmail}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewEmail(e.target.value)}
+                  required
+                  autoFocus
+                />
+                <div className="flex justify-end gap-3">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setIsAddModalOpen(false);
+                      setError("");
+                      setNewEmail("");
+                    }}
+                    disabled={adding}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    size="sm"
+                    icon={<Plus className="w-4 h-4" />}
+                    isLoading={adding}
+                    disabled={!newEmail.trim() || adding}
+                  >
+                    Add
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
