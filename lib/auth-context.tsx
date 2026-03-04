@@ -39,52 +39,92 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const resolveAdmin = useCallback(async (authUser: User | null) => {
-    if (!authUser) {
+    try {
+      if (!authUser) {
+        setAdmin(null);
+        setLoading(false);
+        return;
+      }
+
+      const role = await fetchAdminRole(authUser.id);
+      if (!role) {
+        await supabase.auth.signOut();
+        setAdmin(null);
+        setLoading(false);
+        return;
+      }
+
+      setAdmin({ authUser, role });
+      setLoading(false);
+    } catch (error) {
+      console.error("[AuthProvider] Failed to resolve admin user:", error);
       setAdmin(null);
       setLoading(false);
-      return;
     }
-
-    const role = await fetchAdminRole(authUser.id);
-    if (!role) {
-      await supabase.auth.signOut();
-      setAdmin(null);
-      setLoading(false);
-      return;
-    }
-
-    setAdmin({ authUser, role });
-    setLoading(false);
   }, []);
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
-      if (error) {
-        if (error.message?.includes('Refresh Token') || error.message?.includes('refresh_token')) {
-          await supabase.auth.signOut();
+    let isMounted = true;
+
+    const bootstrapAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          if (error.message?.includes("Refresh Token") || error.message?.includes("refresh_token")) {
+            await supabase.auth.signOut();
+          }
+
+          if (isMounted) {
+            setAdmin(null);
+            setLoading(false);
+          }
+          return;
         }
-        setAdmin(null);
-        setLoading(false);
-        return;
+
+        if (!isMounted) return;
+        await resolveAdmin(session?.user ?? null);
+      } catch (error) {
+        console.error("[AuthProvider] Session bootstrap failed:", error);
+        if (isMounted) {
+          setAdmin(null);
+          setLoading(false);
+        }
       }
-      await resolveAdmin(session?.user ?? null);
-    });
+    };
+
+    bootstrapAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'TOKEN_REFRESHED' && !session) {
-        setAdmin(null);
-        setLoading(false);
-        return;
+      try {
+        if (event === "TOKEN_REFRESHED" && !session) {
+          if (isMounted) {
+            setAdmin(null);
+            setLoading(false);
+          }
+          return;
+        }
+        if (event === "SIGNED_OUT") {
+          if (isMounted) {
+            setAdmin(null);
+            setLoading(false);
+          }
+          return;
+        }
+        if (!isMounted) return;
+        await resolveAdmin(session?.user ?? null);
+      } catch (error) {
+        console.error("[AuthProvider] Auth state change failed:", error);
+        if (isMounted) {
+          setAdmin(null);
+          setLoading(false);
+        }
       }
-      if (event === 'SIGNED_OUT') {
-        setAdmin(null);
-        setLoading(false);
-        return;
-      }
-      await resolveAdmin(session?.user ?? null);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, [resolveAdmin]);
 
   const signIn = async (email: string, password: string) => {
