@@ -6,8 +6,9 @@ import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import Input from "@/components/shared/Input";
-import Button from "@/components/shared/Button";
-import { Search, FolderKanban, Trash2, ChevronDown, ExternalLink } from "lucide-react";
+import ConfirmModal from "@/components/shared/ConfirmModal";
+import Pagination, { usePagination } from "@/components/shared/Pagination";
+import { Search, FolderKanban, Trash2, ChevronDown } from "lucide-react";
 
 interface Project {
   id: string;
@@ -42,7 +43,7 @@ export default function ProjectsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [expandedProject, setExpandedProject] = useState<string | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
@@ -97,22 +98,20 @@ export default function ProjectsPage() {
     }
   };
 
-  const handleDelete = async (projectId: string) => {
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await supabase.from("blueprints").delete().eq("project_id", projectId);
-      await supabase.from("projects").delete().eq("id", projectId);
-      setProjects((prev) => prev.filter((p) => p.id !== projectId));
-      setDeleteConfirm(null);
+      await supabase.from("blueprints").delete().eq("project_id", deleteTarget.id);
+      await supabase.from("projects").delete().eq("id", deleteTarget.id);
+      setProjects((prev) => prev.filter((p) => p.id !== deleteTarget.id));
+      setDeleteTarget(null);
     } catch (err) {
       console.error("Failed to delete project:", err);
     } finally {
       setDeleting(false);
     }
   };
-
-  if (loading || !admin) return <TableSkeleton />;
-  if (loadingData) return <TableSkeleton />;
 
   const filtered = projects.filter((p) => {
     const q = search.toLowerCase();
@@ -124,6 +123,11 @@ export default function ProjectsPage() {
     const matchesStatus = statusFilter === "all" || p.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const { currentPage, setCurrentPage, paginatedItems, totalItems, pageSize } = usePagination(filtered);
+
+  if (loading || !admin) return <TableSkeleton />;
+  if (loadingData) return <TableSkeleton />;
 
   const statusCounts = projects.reduce((acc, p) => {
     acc[p.status] = (acc[p.status] || 0) + 1;
@@ -180,7 +184,7 @@ export default function ProjectsPage() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((project) => (
+            {paginatedItems.map((project) => (
               <>
                 <tr
                   key={project.id}
@@ -216,32 +220,16 @@ export default function ProjectsPage() {
                     {new Date(project.created_at).toLocaleDateString()}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    {deleteConfirm === project.id ? (
-                      <div className="flex items-center gap-2 justify-end" onClick={(e) => e.stopPropagation()}>
-                        <Button
-                          size="sm"
-                          variant="danger"
-                          isLoading={deleting}
-                          onClick={() => handleDelete(project.id)}
-                        >
-                          Confirm
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => setDeleteConfirm(null)}>
-                          Cancel
-                        </Button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeleteConfirm(project.id);
-                        }}
-                        className="p-1.5 rounded-lg text-red-400 hover:bg-red-400/10 transition-colors"
-                        title="Delete project"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteTarget(project);
+                      }}
+                      className="p-1.5 rounded-lg text-red-400 hover:bg-red-400/10 transition-colors"
+                      title="Delete project"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </td>
                 </tr>
                 {expandedProject === project.id && (
@@ -289,7 +277,30 @@ export default function ProjectsPage() {
             )}
           </tbody>
         </table>
+        <Pagination
+          currentPage={currentPage}
+          totalItems={totalItems}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+        />
       </div>
+
+      <ConfirmModal
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+        title="Delete Project"
+        description={
+          <>
+            Are you sure you want to delete{" "}
+            <strong>{deleteTarget?.name}</strong>? All associated blueprints
+            will also be removed. This action cannot be undone.
+          </>
+        }
+        confirmLabel="Delete Project"
+        variant="danger"
+        isLoading={deleting}
+      />
     </div>
   );
 }

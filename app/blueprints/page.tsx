@@ -7,7 +7,9 @@ import { supabase } from "@/lib/supabase";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import Input from "@/components/shared/Input";
 import Button from "@/components/shared/Button";
-import { Search, FileSearch, AlertTriangle, ChevronDown, RotateCcw, Eye } from "lucide-react";
+import ConfirmModal from "@/components/shared/ConfirmModal";
+import Pagination, { usePagination } from "@/components/shared/Pagination";
+import { Search, FileSearch, AlertTriangle, ChevronDown, RotateCcw, Trash2 } from "lucide-react";
 
 interface Blueprint {
   id: string;
@@ -47,6 +49,8 @@ export default function BlueprintsPage() {
   const [expandedBp, setExpandedBp] = useState<string | null>(null);
   const [extractionDetail, setExtractionDetail] = useState<ExtractionDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Blueprint | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!loading && !admin) router.push("/login");
@@ -128,14 +132,44 @@ export default function BlueprintsPage() {
     }
   };
 
-  if (loading || !admin) return <TableSkeleton />;
-  if (loadingData) return <TableSkeleton />;
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const { data: extractions } = await supabase
+        .from("extractions")
+        .select("id")
+        .eq("blueprint_id", deleteTarget.id);
+
+      const extractionIds = (extractions || []).map((e) => e.id);
+      if (extractionIds.length > 0) {
+        await supabase.from("extracted_fields").delete().in("extraction_id", extractionIds);
+      }
+      await supabase.from("extractions").delete().eq("blueprint_id", deleteTarget.id);
+      await supabase.from("blueprints").delete().eq("id", deleteTarget.id);
+      setBlueprints((prev) => prev.filter((b) => b.id !== deleteTarget.id));
+      if (expandedBp === deleteTarget.id) {
+        setExpandedBp(null);
+        setExtractionDetail(null);
+      }
+      setDeleteTarget(null);
+    } catch (err) {
+      console.error("Failed to delete blueprint:", err);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const filtered = blueprints.filter((b) => {
     const matchesSearch = b.file_name.toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === "all" || b.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const { currentPage, setCurrentPage, paginatedItems, totalItems, pageSize } = usePagination(filtered);
+
+  if (loading || !admin) return <TableSkeleton />;
+  if (loadingData) return <TableSkeleton />;
 
   const statusCounts = blueprints.reduce((acc, b) => {
     acc[b.status] = (acc[b.status] || 0) + 1;
@@ -192,7 +226,7 @@ export default function BlueprintsPage() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((bp) => (
+            {paginatedItems.map((bp) => (
               <>
                 <tr
                   key={bp.id}
@@ -214,19 +248,28 @@ export default function BlueprintsPage() {
                   <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
                     {new Date(bp.created_at).toLocaleDateString()}
                   </td>
-                  <td className="px-4 py-3 text-right flex items-center justify-end gap-1">
-                    {bp.status === "error" && (
+                  <td className="px-4 py-3 text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      {bp.status === "error" && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleResetStatus(bp.id); }}
+                          className="p-1.5 rounded-lg text-amber-500 hover:bg-amber-400/10 transition-colors"
+                          title="Reset to uploaded"
+                        >
+                          <RotateCcw className="w-4 h-4" />
+                        </button>
+                      )}
                       <button
-                        onClick={(e) => { e.stopPropagation(); handleResetStatus(bp.id); }}
-                        className="p-1.5 rounded-lg text-amber-500 hover:bg-amber-400/10 transition-colors"
-                        title="Reset to uploaded"
+                        onClick={(e) => { e.stopPropagation(); setDeleteTarget(bp); }}
+                        className="p-1.5 rounded-lg text-red-400 hover:bg-red-400/10 transition-colors"
+                        title="Delete blueprint"
                       >
-                        <RotateCcw className="w-4 h-4" />
+                        <Trash2 className="w-4 h-4" />
                       </button>
-                    )}
-                    <ChevronDown
-                      className={`w-4 h-4 text-gray-400 transition-transform ${expandedBp === bp.id ? "rotate-180" : ""}`}
-                    />
+                      <ChevronDown
+                        className={`w-4 h-4 text-gray-400 transition-transform ${expandedBp === bp.id ? "rotate-180" : ""}`}
+                      />
+                    </div>
                   </td>
                 </tr>
                 {expandedBp === bp.id && (
@@ -315,7 +358,31 @@ export default function BlueprintsPage() {
             )}
           </tbody>
         </table>
+        <Pagination
+          currentPage={currentPage}
+          totalItems={totalItems}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+        />
       </div>
+
+      <ConfirmModal
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+        title="Delete Blueprint"
+        description={
+          <>
+            Are you sure you want to delete{" "}
+            <strong>{deleteTarget?.file_name}</strong>? All associated
+            extractions and extracted fields will also be removed. This action
+            cannot be undone.
+          </>
+        }
+        confirmLabel="Delete Blueprint"
+        variant="danger"
+        isLoading={deleting}
+      />
     </div>
   );
 }

@@ -7,7 +7,9 @@ import { supabase } from "@/lib/supabase";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import Input from "@/components/shared/Input";
 import Button from "@/components/shared/Button";
-import { Search, Building2, CheckCircle, XCircle, Plus, X, Edit2 } from "lucide-react";
+import ConfirmModal from "@/components/shared/ConfirmModal";
+import Pagination, { usePagination } from "@/components/shared/Pagination";
+import { Search, Building2, CheckCircle, XCircle, Plus, X, Edit2, Trash2 } from "lucide-react";
 
 interface Municipality {
   id: string;
@@ -34,6 +36,8 @@ export default function MunicipalitiesPage() {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<Municipality | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!loading && !admin) router.push("/login");
@@ -140,13 +144,29 @@ export default function MunicipalitiesPage() {
     }
   };
 
-  if (loading || !admin) return <TableSkeleton />;
-  if (loadingData) return <TableSkeleton />;
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await supabase.from("municipalities").delete().eq("id", deleteTarget.id);
+      setMunicipalities((prev) => prev.filter((m) => m.id !== deleteTarget.id));
+      setDeleteTarget(null);
+    } catch (err) {
+      console.error("Failed to delete municipality:", err);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const filtered = municipalities.filter((m) => {
     const q = search.toLowerCase();
     return m.name.toLowerCase().includes(q) || m.county.toLowerCase().includes(q) || m.state.toLowerCase().includes(q);
   });
+
+  const { currentPage, setCurrentPage, paginatedItems, totalItems, pageSize } = usePagination(filtered);
+
+  if (loading || !admin) return <TableSkeleton />;
+  if (loadingData) return <TableSkeleton />;
 
   return (
     <div className="p-6 space-y-6">
@@ -255,7 +275,7 @@ export default function MunicipalitiesPage() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((m) => (
+            {paginatedItems.map((m) => (
               <tr key={m.id} className="border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
                 <td className="px-4 py-3">
                   <div className="text-gray-900 dark:text-white font-medium">{m.name}</div>
@@ -291,13 +311,22 @@ export default function MunicipalitiesPage() {
                   </button>
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <button
-                    onClick={() => openEditForm(m)}
-                    className="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors"
-                    title="Edit"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center justify-end gap-1">
+                    <button
+                      onClick={() => openEditForm(m)}
+                      className="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors"
+                      title="Edit"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => setDeleteTarget(m)}
+                      className="p-1.5 rounded-lg text-red-400 hover:bg-red-400/10 transition-colors"
+                      title="Delete municipality"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -310,7 +339,30 @@ export default function MunicipalitiesPage() {
             )}
           </tbody>
         </table>
+        <Pagination
+          currentPage={currentPage}
+          totalItems={totalItems}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+        />
       </div>
+
+      <ConfirmModal
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+        title="Delete Municipality"
+        description={
+          <>
+            Are you sure you want to delete{" "}
+            <strong>{deleteTarget?.name}</strong> ({deleteTarget?.county},{" "}
+            {deleteTarget?.state})? This action cannot be undone.
+          </>
+        }
+        confirmLabel="Delete Municipality"
+        variant="danger"
+        isLoading={deleting}
+      />
     </div>
   );
 }

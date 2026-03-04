@@ -6,7 +6,11 @@ import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import Input from "@/components/shared/Input";
-import { Search, Users as UsersIcon, Shield, ChevronDown, FolderKanban } from "lucide-react";
+import ConfirmModal from "@/components/shared/ConfirmModal";
+import InviteUserModal from "@/components/shared/InviteUserModal";
+import Button from "@/components/shared/Button";
+import Pagination, { usePagination } from "@/components/shared/Pagination";
+import { Search, Users as UsersIcon, Shield, ChevronDown, FolderKanban, Trash2, UserPlus } from "lucide-react";
 
 interface UserProfile {
   id: string;
@@ -30,45 +34,47 @@ export default function UsersPage() {
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [editingRole, setEditingRole] = useState<string | null>(null);
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<UserProfile | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [showInvite, setShowInvite] = useState(false);
 
   useEffect(() => {
     if (!loading && !admin) router.push("/login");
   }, [admin, loading, router]);
 
+  const fetchUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      const { data: projectCounts } = await supabase
+        .from("projects")
+        .select("user_id");
+
+      const countMap: Record<string, number> = {};
+      for (const p of projectCounts || []) {
+        countMap[p.user_id] = (countMap[p.user_id] || 0) + 1;
+      }
+
+      setUsers(
+        (data || []).map((u) => ({
+          ...u,
+          projectCount: countMap[u.user_id] || 0,
+        }))
+      );
+    } catch (err) {
+      console.error("Failed to fetch users:", err);
+    } finally {
+      setLoadingData(false);
+    }
+  };
+
   useEffect(() => {
     if (!admin) return;
-
-    async function fetchUsers() {
-      try {
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("*")
-          .order("created_at", { ascending: false });
-
-        if (error) throw error;
-
-        const { data: projectCounts } = await supabase
-          .from("projects")
-          .select("user_id");
-
-        const countMap: Record<string, number> = {};
-        for (const p of projectCounts || []) {
-          countMap[p.user_id] = (countMap[p.user_id] || 0) + 1;
-        }
-
-        setUsers(
-          (data || []).map((u) => ({
-            ...u,
-            projectCount: countMap[u.user_id] || 0,
-          }))
-        );
-      } catch (err) {
-        console.error("Failed to fetch users:", err);
-      } finally {
-        setLoadingData(false);
-      }
-    }
-
     fetchUsers();
   }, [admin]);
 
@@ -85,8 +91,20 @@ export default function UsersPage() {
     setEditingRole(null);
   };
 
-  if (loading || !admin) return <TableSkeleton />;
-  if (loadingData) return <TableSkeleton />;
+  const handleDeleteUser = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await supabase.from("projects").delete().eq("user_id", deleteTarget.user_id);
+      await supabase.from("profiles").delete().eq("id", deleteTarget.id);
+      setUsers((prev) => prev.filter((u) => u.id !== deleteTarget.id));
+      setDeleteTarget(null);
+    } catch (err) {
+      console.error("Failed to delete user:", err);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const filtered = users.filter((u) => {
     const q = search.toLowerCase();
@@ -101,6 +119,11 @@ export default function UsersPage() {
     return matchesSearch && matchesRole;
   });
 
+  const { currentPage, setCurrentPage, paginatedItems, totalItems, pageSize } = usePagination(filtered);
+
+  if (loading || !admin) return <TableSkeleton />;
+  if (loadingData) return <TableSkeleton />;
+
   const roleCounts = users.reduce((acc, u) => {
     const r = u.role || "user";
     acc[r] = (acc[r] || 0) + 1;
@@ -114,7 +137,12 @@ export default function UsersPage() {
           <UsersIcon className="w-6 h-6 text-primary" />
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Users</h1>
         </div>
-        <span className="text-sm text-gray-500 dark:text-gray-400">{filtered.length} users</span>
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-gray-500 dark:text-gray-400">{filtered.length} users</span>
+          <Button size="sm" icon={<UserPlus className="w-4 h-4" />} onClick={() => setShowInvite(true)}>
+            Create User
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -155,11 +183,11 @@ export default function UsersPage() {
               <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Role</th>
               <th className="text-center px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Projects</th>
               <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Joined</th>
-              <th className="w-10"></th>
+              <th className="text-right px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map((user) => (
+            {paginatedItems.map((user) => (
               <>
                 <tr
                   key={user.id}
@@ -215,12 +243,26 @@ export default function UsersPage() {
                   <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
                     {new Date(user.created_at).toLocaleDateString()}
                   </td>
-                  <td className="px-4 py-3">
-                    <ChevronDown
-                      className={`w-4 h-4 text-gray-400 transition-transform ${
-                        expandedUser === user.id ? "rotate-180" : ""
-                      }`}
-                    />
+                  <td className="px-4 py-3 text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      {admin.role === "super_admin" && user.user_id !== admin.authUser.id && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteTarget(user);
+                          }}
+                          className="p-1.5 rounded-lg text-red-400 hover:bg-red-400/10 transition-colors"
+                          title="Delete user"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                      <ChevronDown
+                        className={`w-4 h-4 text-gray-400 transition-transform ${
+                          expandedUser === user.id ? "rotate-180" : ""
+                        }`}
+                      />
+                    </div>
                   </td>
                 </tr>
                 {expandedUser === user.id && (
@@ -264,7 +306,36 @@ export default function UsersPage() {
             )}
           </tbody>
         </table>
+        <Pagination
+          currentPage={currentPage}
+          totalItems={totalItems}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+        />
       </div>
+
+      <InviteUserModal
+        open={showInvite}
+        onClose={() => setShowInvite(false)}
+        onUserCreated={fetchUsers}
+      />
+
+      <ConfirmModal
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteUser}
+        title="Delete User"
+        description={
+          <>
+            Are you sure you want to delete{" "}
+            <strong>{deleteTarget?.email || "this user"}</strong>? This will also
+            remove all their projects. This action cannot be undone.
+          </>
+        }
+        confirmLabel="Delete User"
+        variant="danger"
+        isLoading={deleting}
+      />
     </div>
   );
 }

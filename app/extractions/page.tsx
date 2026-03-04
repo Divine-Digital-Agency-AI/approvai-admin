@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import Input from "@/components/shared/Input";
+import Pagination, { usePagination } from "@/components/shared/Pagination";
 import { Search, Cpu, Clock, Zap, AlertTriangle, CheckCircle } from "lucide-react";
 
 interface AiUsageEntry {
@@ -115,9 +116,6 @@ export default function ExtractionsPage() {
     fetchUsage();
   }, [admin]);
 
-  if (loading || !admin) return <TableSkeleton />;
-  if (loadingData) return <TableSkeleton />;
-
   const filtered = entries.filter((e) => {
     const matchesSearch =
       e.ai_model.toLowerCase().includes(search.toLowerCase()) ||
@@ -126,6 +124,11 @@ export default function ExtractionsPage() {
     const matchesStatus = statusFilter === "all" || e.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const { currentPage, setCurrentPage, paginatedItems, totalItems, pageSize } = usePagination(filtered);
+
+  if (loading || !admin) return <TableSkeleton />;
+  if (loadingData) return <TableSkeleton />;
 
   const stats: UsageStats = {
     totalCalls: entries.length,
@@ -194,7 +197,7 @@ export default function ExtractionsPage() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((entry) => (
+            {paginatedItems.map((entry) => (
               <tr key={entry.id} className="border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
                 <td className="px-4 py-3 text-gray-500 dark:text-gray-400 whitespace-nowrap">
                   {new Date(entry.created_at).toLocaleString()}
@@ -241,6 +244,12 @@ export default function ExtractionsPage() {
             )}
           </tbody>
         </table>
+        <Pagination
+          currentPage={currentPage}
+          totalItems={totalItems}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+        />
       </div>
     </div>
   );
