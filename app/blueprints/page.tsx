@@ -6,7 +6,8 @@ import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import Input from "@/components/shared/Input";
-import { Search, FileSearch, AlertTriangle, RefreshCw } from "lucide-react";
+import Button from "@/components/shared/Button";
+import { Search, FileSearch, AlertTriangle, ChevronDown, RotateCcw, Eye } from "lucide-react";
 
 interface Blueprint {
   id: string;
@@ -17,6 +18,15 @@ interface Blueprint {
   processing_error: string | null;
   page_count: number | null;
   created_at: string;
+}
+
+interface ExtractionDetail {
+  id: string;
+  extraction_method: string;
+  ai_model_used: string;
+  overall_confidence: number;
+  extracted_at: string;
+  fields: { field_category: string; field_name: string; field_value: string | null; confidence: number }[];
 }
 
 const statusColors: Record<string, string> = {
@@ -34,6 +44,9 @@ export default function BlueprintsPage() {
   const [loadingData, setLoadingData] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [expandedBp, setExpandedBp] = useState<string | null>(null);
+  const [extractionDetail, setExtractionDetail] = useState<ExtractionDetail | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
 
   useEffect(() => {
     if (!loading && !admin) router.push("/login");
@@ -60,6 +73,60 @@ export default function BlueprintsPage() {
 
     fetchBlueprints();
   }, [admin]);
+
+  const handleExpand = async (bpId: string) => {
+    if (expandedBp === bpId) {
+      setExpandedBp(null);
+      setExtractionDetail(null);
+      return;
+    }
+    setExpandedBp(bpId);
+    setLoadingDetail(true);
+
+    try {
+      const { data: extractionData } = await supabase
+        .from("extractions")
+        .select("*")
+        .eq("blueprint_id", bpId)
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      if (extractionData && extractionData.length > 0) {
+        const ext = extractionData[0];
+        const { data: fieldsData } = await supabase
+          .from("extracted_fields")
+          .select("field_category, field_name, field_value, confidence")
+          .eq("extraction_id", ext.id);
+
+        setExtractionDetail({
+          ...ext,
+          fields: fieldsData || [],
+        });
+      } else {
+        setExtractionDetail(null);
+      }
+    } catch (err) {
+      console.error("Failed to fetch extraction details:", err);
+    } finally {
+      setLoadingDetail(false);
+    }
+  };
+
+  const handleResetStatus = async (bpId: string) => {
+    try {
+      await supabase
+        .from("blueprints")
+        .update({ status: "uploaded", processing_error: null })
+        .eq("id", bpId);
+      setBlueprints((prev) =>
+        prev.map((b) =>
+          b.id === bpId ? { ...b, status: "uploaded", processing_error: null } : b
+        )
+      );
+    } catch (err) {
+      console.error("Failed to reset status:", err);
+    }
+  };
 
   if (loading || !admin) return <TableSkeleton />;
   if (loadingData) return <TableSkeleton />;
@@ -121,36 +188,123 @@ export default function BlueprintsPage() {
               <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Pages</th>
               <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Size</th>
               <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Created</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Error</th>
+              <th className="text-right px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Actions</th>
             </tr>
           </thead>
           <tbody>
             {filtered.map((bp) => (
-              <tr key={bp.id} className="border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
-                <td className="px-4 py-3 text-gray-900 dark:text-white font-medium max-w-[200px] truncate">
-                  {bp.file_name}
-                </td>
-                <td className="px-4 py-3">
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${statusColors[bp.status] || statusColors.uploaded}`}>
-                    {bp.status}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{bp.page_count ?? "—"}</td>
-                <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
-                  {bp.file_size ? `${(bp.file_size / 1024).toFixed(0)} KB` : "—"}
-                </td>
-                <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
-                  {new Date(bp.created_at).toLocaleDateString()}
-                </td>
-                <td className="px-4 py-3 text-red-400 max-w-[200px] truncate text-xs">
-                  {bp.processing_error && (
-                    <span className="flex items-center gap-1" title={bp.processing_error}>
-                      <AlertTriangle className="w-3 h-3 flex-shrink-0" />
-                      {bp.processing_error}
+              <>
+                <tr
+                  key={bp.id}
+                  className="border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors cursor-pointer"
+                  onClick={() => handleExpand(bp.id)}
+                >
+                  <td className="px-4 py-3 text-gray-900 dark:text-white font-medium max-w-[200px] truncate">
+                    {bp.file_name}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${statusColors[bp.status] || statusColors.uploaded}`}>
+                      {bp.status}
                     </span>
-                  )}
-                </td>
-              </tr>
+                  </td>
+                  <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{bp.page_count ?? "—"}</td>
+                  <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
+                    {bp.file_size ? `${(bp.file_size / 1024).toFixed(0)} KB` : "—"}
+                  </td>
+                  <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
+                    {new Date(bp.created_at).toLocaleDateString()}
+                  </td>
+                  <td className="px-4 py-3 text-right flex items-center justify-end gap-1">
+                    {bp.status === "error" && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleResetStatus(bp.id); }}
+                        className="p-1.5 rounded-lg text-amber-500 hover:bg-amber-400/10 transition-colors"
+                        title="Reset to uploaded"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                      </button>
+                    )}
+                    <ChevronDown
+                      className={`w-4 h-4 text-gray-400 transition-transform ${expandedBp === bp.id ? "rotate-180" : ""}`}
+                    />
+                  </td>
+                </tr>
+                {expandedBp === bp.id && (
+                  <tr key={`${bp.id}-detail`} className="bg-gray-50 dark:bg-gray-800/50">
+                    <td colSpan={6} className="px-6 py-4">
+                      {loadingDetail ? (
+                        <div className="animate-pulse space-y-2">
+                          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3" />
+                          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2" />
+                        </div>
+                      ) : bp.processing_error ? (
+                        <div className="p-3 bg-red-400/10 border border-red-400/30 rounded-lg text-red-400 text-sm">
+                          <AlertTriangle className="w-4 h-4 inline mr-2" />
+                          {bp.processing_error}
+                        </div>
+                      ) : extractionDetail ? (
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div>
+                              <span className="text-gray-500 dark:text-gray-400 block text-xs">Extraction ID</span>
+                              <span className="font-mono text-xs text-gray-700 dark:text-gray-300">{extractionDetail.id}</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-500 dark:text-gray-400 block text-xs">Method</span>
+                              <span className="text-gray-700 dark:text-gray-300">{extractionDetail.extraction_method}</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-500 dark:text-gray-400 block text-xs">AI Model</span>
+                              <span className="font-mono text-xs text-gray-700 dark:text-gray-300">{extractionDetail.ai_model_used}</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-500 dark:text-gray-400 block text-xs">Confidence</span>
+                              <span className="text-gray-700 dark:text-gray-300">
+                                {(extractionDetail.overall_confidence * 100).toFixed(0)}%
+                              </span>
+                            </div>
+                          </div>
+                          {extractionDetail.fields.length > 0 && (
+                            <div>
+                              <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                                Extracted Fields ({extractionDetail.fields.length})
+                              </h4>
+                              <div className="bg-white dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700 max-h-60 overflow-auto">
+                                {extractionDetail.fields.map((field, i) => (
+                                  <div
+                                    key={i}
+                                    className="px-3 py-2 border-b border-gray-100 dark:border-gray-700/50 last:border-0 text-xs"
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <span className="font-medium text-gray-700 dark:text-gray-300">
+                                        {field.field_category} / {field.field_name}
+                                      </span>
+                                      <span className="text-gray-400">
+                                        {(field.confidence * 100).toFixed(0)}%
+                                      </span>
+                                    </div>
+                                    {field.field_value && (
+                                      <pre className="mt-1 text-gray-500 dark:text-gray-400 whitespace-pre-wrap break-all max-h-32 overflow-auto font-mono text-[10px]">
+                                        {field.field_value.length > 500
+                                          ? field.field_value.slice(0, 500) + "..."
+                                          : field.field_value}
+                                      </pre>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          No extraction data available for this blueprint.
+                        </p>
+                      )}
+                    </td>
+                  </tr>
+                )}
+              </>
             ))}
             {filtered.length === 0 && (
               <tr>

@@ -16,6 +16,8 @@ import {
   Settings,
   LogOut,
   Shield,
+  Cpu,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -28,10 +30,12 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
   { label: "Users", href: "/users", icon: Users },
-  { label: "Early Access", href: "/early-access", icon: MailPlus },
   { label: "Projects", href: "/projects", icon: FolderKanban },
-  { label: "Municipalities", href: "/municipalities", icon: Building2 },
   { label: "Blueprints", href: "/blueprints", icon: FileSearch },
+  { label: "AI Usage", href: "/extractions", icon: Cpu },
+  { label: "Analytics", href: "/analytics", icon: BarChart3 },
+  { label: "Municipalities", href: "/municipalities", icon: Building2 },
+  { label: "Early Access", href: "/early-access", icon: MailPlus },
   { label: "Settings", href: "/settings", icon: Settings },
 ];
 
