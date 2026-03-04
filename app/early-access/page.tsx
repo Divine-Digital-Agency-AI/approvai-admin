@@ -21,7 +21,9 @@ export default function EarlyAccessPage() {
   const [emails, setEmails] = useState<EarlyAccessEmail[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [addMode, setAddMode] = useState<"invite" | "password">("invite");
   const [newEmail, setNewEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState("");
 
@@ -54,29 +56,56 @@ export default function EarlyAccessPage() {
     fetchEmails();
   }, [admin]);
 
+  const closeAddModal = () => {
+    setIsAddModalOpen(false);
+    setError("");
+    setNewEmail("");
+    setNewPassword("");
+    setAddMode("invite");
+  };
+
   const handleAdd = async () => {
     setError("");
     setAdding(true);
 
     try {
       const trimmed = newEmail.trim().toLowerCase();
-      if (!trimmed) return;
-
-      const { error: insertError } = await supabase
-        .from("early_access_emails")
-        .insert({ email: trimmed });
-
-      if (insertError) {
-        if (insertError.code === "23505") {
-          setError("This email is already on the early access list.");
-        } else {
-          throw insertError;
-        }
-      } else {
-        setNewEmail("");
-        setIsAddModalOpen(false);
-        await fetchEmails();
+      if (!trimmed) {
+        setError("Email is required.");
+        return;
       }
+      if (addMode === "password" && newPassword.trim().length < 8) {
+        setError("Password must be at least 8 characters.");
+        return;
+      }
+
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !sessionData.session?.access_token) {
+        throw new Error("Your admin session expired. Please sign in again.");
+      }
+
+      const endpoint =
+        addMode === "invite" ? "/api/admin/invite-user" : "/api/admin/create-user";
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+        },
+        body: JSON.stringify({
+          email: trimmed,
+          ...(addMode === "password" ? { password: newPassword.trim() } : {}),
+        }),
+      });
+
+      const result = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        setError(result.error || "Failed to add user.");
+        return;
+      }
+
+      closeAddModal();
+      await fetchEmails();
     } catch (err: any) {
       setError(err.message || "Failed to add email.");
     } finally {
@@ -109,6 +138,8 @@ export default function EarlyAccessPage() {
           onClick={() => {
             setError("");
             setNewEmail("");
+            setNewPassword("");
+            setAddMode("invite");
             setIsAddModalOpen(true);
           }}
         >
@@ -159,20 +190,14 @@ export default function EarlyAccessPage() {
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           onClick={(e) => {
             if (e.target === e.currentTarget && !adding) {
-              setIsAddModalOpen(false);
-              setError("");
-              setNewEmail("");
+              closeAddModal();
             }
           }}
         >
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
           <div className="relative z-10 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-md">
             <button
-              onClick={() => {
-                setIsAddModalOpen(false);
-                setError("");
-                setNewEmail("");
-              }}
+              onClick={closeAddModal}
               disabled={adding}
               className="absolute top-4 right-4 p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
               title="Close"
@@ -183,8 +208,33 @@ export default function EarlyAccessPage() {
             <div className="p-6">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Add Early Access Email</h3>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                Add a new email to the early access list.
+                Choose how to onboard this user.
               </p>
+
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAddMode("invite")}
+                  className={`rounded-lg border px-3 py-2 text-sm transition-colors ${
+                    addMode === "invite"
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/40"
+                  }`}
+                >
+                  Invite by Email
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAddMode("password")}
+                  className={`rounded-lg border px-3 py-2 text-sm transition-colors ${
+                    addMode === "password"
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/40"
+                  }`}
+                >
+                  Set Temp Password
+                </button>
+              </div>
 
               {error && (
                 <div className="mt-4 p-3 bg-red-400/20 border border-red-400/50 rounded-lg text-red-400 text-sm">
@@ -207,16 +257,21 @@ export default function EarlyAccessPage() {
                   required
                   autoFocus
                 />
+                {addMode === "password" && (
+                  <Input
+                    type="password"
+                    placeholder="Temporary password (min 8 chars)"
+                    value={newPassword}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPassword(e.target.value)}
+                    required
+                  />
+                )}
                 <div className="flex justify-end gap-3">
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => {
-                      setIsAddModalOpen(false);
-                      setError("");
-                      setNewEmail("");
-                    }}
+                    onClick={closeAddModal}
                     disabled={adding}
                   >
                     Cancel
@@ -226,9 +281,13 @@ export default function EarlyAccessPage() {
                     size="sm"
                     icon={<Plus className="w-4 h-4" />}
                     isLoading={adding}
-                    disabled={!newEmail.trim() || adding}
+                    disabled={
+                      !newEmail.trim() ||
+                      adding ||
+                      (addMode === "password" && newPassword.trim().length < 8)
+                    }
                   >
-                    Add
+                    {addMode === "invite" ? "Send Invite" : "Create User"}
                   </Button>
                 </div>
               </form>
