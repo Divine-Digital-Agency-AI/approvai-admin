@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { User } from "@supabase/supabase-js/dist/common.js";
+import { User } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
 
 type AdminRole = "admin" | "super_admin";
