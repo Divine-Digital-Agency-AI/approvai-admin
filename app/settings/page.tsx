@@ -10,6 +10,7 @@ interface SystemStatus {
   supabaseUrl: string;
   hasGeniusProKey: boolean;
   geniusProModel: string;
+  geniusProDeepReviewModel: string;
   maxPages: number;
   totalTables: number;
   profilesCount: number;
@@ -37,7 +38,8 @@ export default function SettingsPage() {
         setStatus({
           supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL || "Not configured",
           hasGeniusProKey: false,
-          geniusProModel: "—",
+          geniusProModel: "simon-says-architecture",
+          geniusProDeepReviewModel: "simon-says-architecture-pro",
           maxPages: 6,
           totalTables: 0,
           profilesCount: count ?? 0,
@@ -126,16 +128,23 @@ export default function SettingsPage() {
             <Cpu className="w-5 h-5 text-primary" />
             Extraction Configuration
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
             <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
               <span className="text-gray-500 dark:text-gray-400 block text-xs mb-1">Max Pages per Extraction</span>
               <span className="text-lg font-semibold text-gray-900 dark:text-white">6</span>
               <span className="block text-xs text-gray-400 mt-1">EXTRACTION_MAX_PAGES env var</span>
             </div>
             <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
-              <span className="text-gray-500 dark:text-gray-400 block text-xs mb-1">AI Model</span>
-              <span className="text-lg font-semibold text-gray-900 dark:text-white font-mono">approvai-bc219</span>
+              <span className="text-gray-500 dark:text-gray-400 block text-xs mb-1">Standard Review Model</span>
+              <span className="text-lg font-semibold text-gray-900 dark:text-white font-mono">{status?.geniusProModel ?? "..."}</span>
               <span className="block text-xs text-gray-400 mt-1">GENIUSPRO_CAT_MODEL env var</span>
+            </div>
+            <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+              <span className="text-gray-500 dark:text-gray-400 block text-xs mb-1">Deep Review Model</span>
+              <span className="text-lg font-semibold text-gray-900 dark:text-white font-mono">
+                {status?.geniusProDeepReviewModel ?? "..."}
+              </span>
+              <span className="block text-xs text-gray-400 mt-1">GENIUSPRO_DEEP_REVIEW_MODEL env var</span>
             </div>
             <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
               <span className="text-gray-500 dark:text-gray-400 block text-xs mb-1">API Timeout</span>
