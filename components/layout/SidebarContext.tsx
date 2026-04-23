@@ -10,7 +10,7 @@ interface SidebarContextType {
 const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
 
 export function SidebarProvider({ children }: { children: ReactNode }) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
 
   return (
     <SidebarContext.Provider value={{ isExpanded, setIsExpanded }}>

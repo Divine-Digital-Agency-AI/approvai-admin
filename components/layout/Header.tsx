@@ -81,7 +81,7 @@ export function Header() {
         </Link>
 
         {/* Admin badge - desktop */}
-        <div className="hidden md:flex items-center gap-1.5 ml-[var(--sidebar-width,60px)]">
+        <div className="hidden md:flex items-center gap-1.5 ml-[var(--sidebar-width,200px)]">
           <Shield className="w-3.5 h-3.5 text-primary" />
           <span className="text-xs font-semibold text-primary">ADMIN</span>
         </div>

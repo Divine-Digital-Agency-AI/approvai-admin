@@ -9,6 +9,7 @@ import Input from "@/components/shared/Input";
 import ConfirmModal from "@/components/shared/ConfirmModal";
 import Pagination, { usePagination } from "@/components/shared/Pagination";
 import { Search, FolderKanban, Trash2, ChevronDown } from "lucide-react";
+import { getProjectStatusLabel } from "@/lib/project-status";
 
 interface Project {
   id: string;
@@ -155,7 +156,9 @@ export default function ProjectsPage() {
                 : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
             }`}
           >
-            {status === "all" ? `All (${projects.length})` : `${status} (${statusCounts[status] || 0})`}
+            {status === "all"
+              ? `All (${projects.length})`
+              : `${getProjectStatusLabel(status)} (${statusCounts[status] || 0})`}
           </button>
         ))}
       </div>
@@ -209,7 +212,9 @@ export default function ProjectsPage() {
                       onClick={(e) => e.stopPropagation()}
                     >
                       {ALL_STATUSES.map((s) => (
-                        <option key={s} value={s}>{s}</option>
+                        <option key={s} value={s}>
+                          {getProjectStatusLabel(s)}
+                        </option>
                       ))}
                     </select>
                   </td>

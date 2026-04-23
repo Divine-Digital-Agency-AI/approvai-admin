@@ -23,6 +23,15 @@ interface Municipality {
   permit_form_template: string | null;
 }
 
+interface UserMunicipalityRow {
+  id: string;
+  user_id: string;
+  name: string;
+  permit_submission_url: string | null;
+  permit_application_document_id: string | null;
+  created_at: string;
+}
+
 const emptyForm = { name: "", slug: "", county: "", state: "", website_url: "", permit_form_template: "" };
 
 export default function MunicipalitiesPage() {
@@ -38,6 +47,8 @@ export default function MunicipalitiesPage() {
   const [formError, setFormError] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<Municipality | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [userMunicipalities, setUserMunicipalities] = useState<UserMunicipalityRow[]>([]);
+  const [userMunError, setUserMunError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !admin) router.push("/login");
@@ -59,9 +70,28 @@ export default function MunicipalitiesPage() {
     }
   };
 
+  const fetchUserMunicipalities = async () => {
+    setUserMunError(null);
+    try {
+      const { data, error } = await supabase
+        .from("user_municipalities")
+        .select("id, user_id, name, permit_submission_url, permit_application_document_id, created_at")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      setUserMunicipalities(data || []);
+    } catch (e) {
+      console.error("Failed to fetch user_municipalities:", e);
+      setUserMunError(
+        "Could not load user-submitted jurisdictions (check RLS / admin policies)."
+      );
+      setUserMunicipalities([]);
+    }
+  };
+
   useEffect(() => {
     if (!admin) return;
     fetchMunicipalities();
+    fetchUserMunicipalities();
   }, [admin]);
 
   const toggleApproved = async (id: string, currentValue: boolean) => {
@@ -363,6 +393,57 @@ export default function MunicipalitiesPage() {
         variant="danger"
         isLoading={deleting}
       />
+
+      <div className="space-y-3">
+        <h2 className="text-lg font-medium text-gray-900 dark:text-white">
+          User-submitted jurisdictions (legacy)
+        </h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 max-w-3xl">
+          Homeowners no longer add permit forms in the client app. Rows here are from earlier accounts; create or approve a
+          matching row in the table above so projects auto-link when the address resolves.
+        </p>
+        {userMunError && (
+          <div className="p-3 rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-200 text-sm">
+            {userMunError}
+          </div>
+        )}
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Name</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">User</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Submission URL</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Permit doc</th>
+              </tr>
+            </thead>
+            <tbody>
+              {userMunicipalities.map((u) => (
+                <tr
+                  key={u.id}
+                  className="border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-800/30"
+                >
+                  <td className="px-4 py-3 text-gray-900 dark:text-white font-medium">{u.name}</td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-gray-300 font-mono text-xs">{u.user_id}</td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-gray-300 max-w-xs truncate">
+                    {u.permit_submission_url || "—"}
+                  </td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-gray-300 font-mono text-xs">
+                    {u.permit_application_document_id || "—"}
+                  </td>
+                </tr>
+              ))}
+              {userMunicipalities.length === 0 && !userMunError && (
+                <tr>
+                  <td colSpan={4} className="px-4 py-6 text-center text-gray-500 dark:text-gray-400">
+                    No user-submitted jurisdiction rows.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
