@@ -12,6 +12,12 @@ import { MailPlus, Trash2, Plus, X } from "lucide-react";
 interface EarlyAccessEmail {
   id: string;
   email: string;
+  full_name: string | null;
+  company: string | null;
+  role: string | null;
+  phone: string | null;
+  message: string | null;
+  source: string | null;
   added_at: string;
 }
 
@@ -130,7 +136,7 @@ export default function EarlyAccessPage() {
       <div className="flex items-center gap-3">
         <MailPlus className="w-6 h-6 text-primary" />
         <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Early Access</h1>
-        <span className="text-sm text-gray-500 dark:text-gray-400 ml-auto">{emails.length} emails</span>
+        <span className="text-sm text-gray-500 dark:text-gray-400 ml-auto">{emails.length} requests</span>
         <Button
           type="button"
           size="sm"
@@ -147,11 +153,15 @@ export default function EarlyAccessPage() {
         </Button>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-x-auto">
+        <table className="w-full text-sm min-w-[720px]">
           <thead>
             <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Name</th>
               <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Email</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Company</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Role</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Source</th>
               <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Added</th>
               <th className="text-right px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Actions</th>
             </tr>
@@ -159,7 +169,13 @@ export default function EarlyAccessPage() {
           <tbody>
             {emails.map((item) => (
               <tr key={item.id} className="border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
+                <td className="px-4 py-3 text-gray-900 dark:text-white">{item.full_name || "—"}</td>
                 <td className="px-4 py-3 text-gray-900 dark:text-white">{item.email}</td>
+                <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{item.company || "—"}</td>
+                <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{item.role || "—"}</td>
+                <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
+                  {item.source === "client_request" ? "Request" : "Admin"}
+                </td>
                 <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
                   {new Date(item.added_at).toLocaleDateString()}
                 </td>
@@ -176,8 +192,8 @@ export default function EarlyAccessPage() {
             ))}
             {emails.length === 0 && (
               <tr>
-                <td colSpan={3} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
-                  No emails on the early access list yet. Add one with the button above.
+                <td colSpan={7} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+                  No early access requests yet.
                 </td>
               </tr>
             )}
