@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import Input from "@/components/shared/Input";
+import Button from "@/components/shared/Button";
+import ConfirmModal from "@/components/shared/ConfirmModal";
 import Pagination, { usePagination } from "@/components/shared/Pagination";
-import { Search, Cpu, Clock, Zap, AlertTriangle, CheckCircle } from "lucide-react";
+import { Search, Cpu, Clock, Zap, AlertTriangle, CheckCircle, RotateCcw } from "lucide-react";
 
 interface AiUsageEntry {
   id: string;
@@ -81,40 +83,76 @@ export default function ExtractionsPage() {
   const [loadingData, setLoadingData] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [clearing, setClearing] = useState(false);
+  const [clearError, setClearError] = useState("");
 
   useEffect(() => {
     if (!loading && !admin) router.push("/login");
   }, [admin, loading, router]);
 
+  const fetchUsage = useCallback(async () => {
+    setLoadingData(true);
+    try {
+      const { data, error } = await supabase
+        .from("ai_usage_log")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(500);
+
+      if (error) {
+        if (error.code === "42P01") {
+          setEntries([]);
+        } else {
+          throw error;
+        }
+      } else {
+        setEntries(data || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch AI usage:", err);
+    } finally {
+      setLoadingData(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!admin) return;
+    void fetchUsage();
+  }, [admin, fetchUsage]);
 
-    async function fetchUsage() {
-      try {
-        const { data, error } = await supabase
-          .from("ai_usage_log")
-          .select("*")
-          .order("created_at", { ascending: false })
-          .limit(500);
+  const errorCount = entries.filter(
+    (e) => e.status === "error" || !!e.error_message
+  ).length;
 
-        if (error) {
-          if (error.code === "42P01") {
-            setEntries([]);
-          } else {
-            throw error;
-          }
-        } else {
-          setEntries(data || []);
-        }
-      } catch (err) {
-        console.error("Failed to fetch AI usage:", err);
-      } finally {
-        setLoadingData(false);
+  const handleClearErrors = async () => {
+    setClearing(true);
+    setClearError("");
+    try {
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !sessionData.session?.access_token) {
+        throw new Error("Your admin session expired. Please sign in again.");
       }
-    }
 
-    fetchUsage();
-  }, [admin]);
+      const response = await fetch("/api/admin/clear-ai-errors", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+        },
+      });
+      const result = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to clear errors.");
+      }
+
+      setShowClearConfirm(false);
+      await fetchUsage();
+    } catch (err) {
+      setClearError(err instanceof Error ? err.message : "Failed to clear errors.");
+    } finally {
+      setClearing(false);
+    }
+  };
 
   const filtered = entries.filter((e) => {
     const matchesSearch =
@@ -146,13 +184,33 @@ export default function ExtractionsPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Cpu className="w-6 h-6 text-primary" />
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">AI Usage & Extractions</h1>
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">AI Usage & Extractions</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{filtered.length} entries</p>
+          </div>
         </div>
-        <span className="text-sm text-gray-500 dark:text-gray-400">{filtered.length} entries</span>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            setClearError("");
+            setShowClearConfirm(true);
+          }}
+          disabled={errorCount === 0}
+          icon={<RotateCcw className="h-4 w-4" strokeWidth={1.75} />}
+        >
+          Clear errors{errorCount > 0 ? ` (${errorCount})` : ""}
+        </Button>
       </div>
+
+      {clearError && (
+        <div className="rounded-[10px] border border-red-400/40 bg-red-400/10 px-4 py-3 text-sm text-red-500">
+          {clearError}
+        </div>
+      )}
 
       <StatsBar stats={stats} />
 
@@ -251,6 +309,23 @@ export default function ExtractionsPage() {
           onPageChange={setCurrentPage}
         />
       </div>
+
+      <ConfirmModal
+        open={showClearConfirm}
+        onClose={() => !clearing && setShowClearConfirm(false)}
+        onConfirm={handleClearErrors}
+        title="Clear AI errors?"
+        description={
+          <>
+            This deletes failed AI usage log rows and resets blueprints stuck in{" "}
+            <strong>error</strong> back to <strong>uploaded</strong> so they can be
+            retried. Successful usage history is kept.
+          </>
+        }
+        confirmLabel="Clear errors"
+        variant="warning"
+        isLoading={clearing}
+      />
     </div>
   );
 }

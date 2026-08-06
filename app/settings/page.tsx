@@ -4,7 +4,27 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
-import { Settings, Shield, Server, Key, Cpu, Globe, CheckCircle, XCircle } from "lucide-react";
+import Button from "@/components/shared/Button";
+import {
+  Settings,
+  Shield,
+  Server,
+  Key,
+  Cpu,
+  Globe,
+  CheckCircle,
+  LogOut,
+  FileStack,
+  Timer,
+  Sparkles,
+} from "lucide-react";
+import {
+  adminCardBorder,
+  adminMuted,
+  adminPagePad,
+  adminSectionLabel,
+} from "@/lib/themed-surfaces";
+import { cn } from "@/lib/utils";
 
 interface SystemStatus {
   supabaseUrl: string;
@@ -16,11 +36,60 @@ interface SystemStatus {
   profilesCount: number;
 }
 
+function ConfigTile({
+  icon: Icon,
+  label,
+  value,
+  envKey,
+  mono = false,
+}: {
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  label: string;
+  value: string;
+  envKey: string;
+  mono?: boolean;
+}) {
+  return (
+    <div className="rounded-[14px] border border-[#d4d4d4] bg-[#f7f7f7] p-4 dark:border-[#333333] dark:bg-[#0d0d0d]">
+      <div className="mb-3 flex items-center gap-2">
+        <span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-primary/10 text-primary">
+          <Icon className="h-4 w-4" strokeWidth={1.75} />
+        </span>
+        <span className={cn(adminSectionLabel, "normal-case tracking-normal")}>{label}</span>
+      </div>
+      <p
+        className={cn(
+          "text-lg font-semibold tracking-tight text-[#1a1a1a] dark:text-white",
+          mono && "truncate font-mono text-sm sm:text-base"
+        )}
+        title={value}
+      >
+        {value}
+      </p>
+      <code className="mt-2 inline-block rounded-full bg-white px-2 py-0.5 text-[11px] text-[#666666] dark:bg-[#1a1a1a] dark:text-[#7f7f7f]">
+        {envKey}
+      </code>
+    </div>
+  );
+}
+
 export default function SettingsPage() {
-  const { admin, loading } = useAuth();
+  const { admin, loading, signOut } = useAuth();
   const router = useRouter();
   const [status, setStatus] = useState<SystemStatus | null>(null);
   const [loadingStatus, setLoadingStatus] = useState(true);
+  const [signingOut, setSigningOut] = useState(false);
+
+  const handleSignOut = async () => {
+    setSigningOut(true);
+    try {
+      await signOut();
+      router.push("/login");
+    } catch (error) {
+      console.error("Sign out error:", error);
+      setSigningOut(false);
+    }
+  };
 
   useEffect(() => {
     if (!loading && !admin) router.push("/login");
@@ -57,100 +126,119 @@ export default function SettingsPage() {
   if (loading || !admin) return null;
 
   return (
-    <div className="p-6 space-y-6">
+    <div className={cn(adminPagePad, "space-y-6")}>
       <div className="flex items-center gap-3">
-        <Settings className="w-6 h-6 text-primary" />
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Settings</h1>
+        <Settings className="h-6 w-6 text-primary" strokeWidth={1.75} />
+        <h1 className="text-xl font-semibold tracking-tight text-[#1a1a1a] dark:text-white sm:text-2xl">
+          Settings
+        </h1>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-          <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-            <Shield className="w-5 h-5 text-primary" />
+        <div className={adminCardBorder}>
+          <h2 className="mb-4 flex items-center gap-2 text-base font-semibold text-[#1a1a1a] dark:text-white">
+            <Shield className="h-5 w-5 text-primary" strokeWidth={1.75} />
             Admin Info
           </h2>
           <div className="space-y-3 text-sm">
-            <div className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700/50">
-              <span className="text-gray-500 dark:text-gray-400">Role</span>
-              <span className="font-medium text-gray-900 dark:text-white px-2 py-0.5 bg-primary/10 text-primary rounded text-xs">
+            <div className="flex items-center justify-between border-b border-[#e5e5e5] py-2 dark:border-[#333333]">
+              <span className={adminMuted}>Role</span>
+              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
                 {admin.role}
               </span>
             </div>
-            <div className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700/50">
-              <span className="text-gray-500 dark:text-gray-400">Email</span>
-              <span className="font-medium text-gray-900 dark:text-white">{admin.authUser.email}</span>
+            <div className="flex items-center justify-between border-b border-[#e5e5e5] py-2 dark:border-[#333333]">
+              <span className={adminMuted}>Email</span>
+              <span className="font-medium text-[#1a1a1a] dark:text-white">{admin.authUser.email}</span>
             </div>
             <div className="flex items-center justify-between py-2">
-              <span className="text-gray-500 dark:text-gray-400">User ID</span>
-              <span className="font-mono text-xs text-gray-600 dark:text-gray-300">{admin.authUser.id}</span>
+              <span className={adminMuted}>User ID</span>
+              <span className="font-mono text-xs text-[#666666] dark:text-[#7f7f7f]">{admin.authUser.id}</span>
             </div>
+          </div>
+          <div className="mt-5 border-t border-[#e5e5e5] pt-4 dark:border-[#333333]">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSignOut}
+              isLoading={signingOut}
+              icon={<LogOut className="h-4 w-4" strokeWidth={1.75} />}
+              className="w-full sm:w-auto"
+            >
+              Sign out
+            </Button>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-          <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-            <Server className="w-5 h-5 text-primary" />
+        <div className={adminCardBorder}>
+          <h2 className="mb-4 flex items-center gap-2 text-base font-semibold text-[#1a1a1a] dark:text-white">
+            <Server className="h-5 w-5 text-primary" strokeWidth={1.75} />
             Infrastructure
           </h2>
           <div className="space-y-3 text-sm">
-            <div className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700/50">
-              <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
-                <Globe className="w-3.5 h-3.5" /> Supabase
+            <div className="flex items-center justify-between border-b border-[#e5e5e5] py-2 dark:border-[#333333]">
+              <span className={cn(adminMuted, "flex items-center gap-1.5")}>
+                <Globe className="h-3.5 w-3.5" strokeWidth={1.75} /> Supabase
               </span>
-              <div className="flex items-center gap-1.5">
-                <CheckCircle className="w-3.5 h-3.5 text-green-500" />
-                <span className="text-xs text-gray-600 dark:text-gray-300 font-mono truncate max-w-[200px]">
+              <div className="flex min-w-0 items-center gap-1.5">
+                <CheckCircle className="h-3.5 w-3.5 shrink-0 text-emerald-500" strokeWidth={1.75} />
+                <span className="max-w-[200px] truncate font-mono text-xs text-[#666666] dark:text-[#7f7f7f]">
                   {status?.supabaseUrl || "..."}
                 </span>
               </div>
             </div>
-            <div className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700/50">
-              <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
-                <Key className="w-3.5 h-3.5" /> GeniusPro API Key
+            <div className="flex items-center justify-between border-b border-[#e5e5e5] py-2 dark:border-[#333333]">
+              <span className={cn(adminMuted, "flex items-center gap-1.5")}>
+                <Key className="h-3.5 w-3.5" strokeWidth={1.75} /> GeniusPro API Key
               </span>
-              <span className="text-xs text-gray-500 dark:text-gray-400 italic">
-                Set in backend .env
-              </span>
+              <span className="text-xs text-[#999999]">Set in backend .env</span>
             </div>
             <div className="flex items-center justify-between py-2">
-              <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
-                <Cpu className="w-3.5 h-3.5" /> Users in DB
+              <span className={cn(adminMuted, "flex items-center gap-1.5")}>
+                <Cpu className="h-3.5 w-3.5" strokeWidth={1.75} /> Users in DB
               </span>
-              <span className="font-medium text-gray-900 dark:text-white">
-                {status?.profilesCount ?? "..."}
+              <span className="font-medium text-[#1a1a1a] dark:text-white">
+                {loadingStatus ? "…" : (status?.profilesCount ?? "…")}
               </span>
             </div>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 md:col-span-2">
-          <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-            <Cpu className="w-5 h-5 text-primary" />
-            Extraction Configuration
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-            <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
-              <span className="text-gray-500 dark:text-gray-400 block text-xs mb-1">Max Pages per Extraction</span>
-              <span className="text-lg font-semibold text-gray-900 dark:text-white">6</span>
-              <span className="block text-xs text-gray-400 mt-1">EXTRACTION_MAX_PAGES env var</span>
-            </div>
-            <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
-              <span className="text-gray-500 dark:text-gray-400 block text-xs mb-1">Standard Review Model</span>
-              <span className="text-lg font-semibold text-gray-900 dark:text-white font-mono">{status?.geniusProModel ?? "..."}</span>
-              <span className="block text-xs text-gray-400 mt-1">GENIUSPRO_CAT_MODEL env var</span>
-            </div>
-            <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
-              <span className="text-gray-500 dark:text-gray-400 block text-xs mb-1">Deep Review Model</span>
-              <span className="text-lg font-semibold text-gray-900 dark:text-white font-mono">
-                {status?.geniusProDeepReviewModel ?? "..."}
-              </span>
-              <span className="block text-xs text-gray-400 mt-1">GENIUSPRO_DEEP_REVIEW_MODEL env var</span>
-            </div>
-            <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
-              <span className="text-gray-500 dark:text-gray-400 block text-xs mb-1">API Timeout</span>
-              <span className="text-lg font-semibold text-gray-900 dark:text-white">120s</span>
-              <span className="block text-xs text-gray-400 mt-1">Hardcoded in geniuspro_service</span>
-            </div>
+        <div className={cn(adminCardBorder, "md:col-span-2")}>
+          <div className="mb-1 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+            <h2 className="flex items-center gap-2 text-base font-semibold text-[#1a1a1a] dark:text-white">
+              <Cpu className="h-5 w-5 text-primary" strokeWidth={1.75} />
+              Extraction configuration
+            </h2>
+            <p className={adminMuted}>Read-only values from the API environment.</p>
+          </div>
+          <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <ConfigTile
+              icon={FileStack}
+              label="Max pages"
+              value={String(status?.maxPages ?? 6)}
+              envKey="EXTRACTION_MAX_PAGES"
+            />
+            <ConfigTile
+              icon={Sparkles}
+              label="Standard model"
+              value={status?.geniusProModel ?? "…"}
+              envKey="GENIUSPRO_CAT_MODEL"
+              mono
+            />
+            <ConfigTile
+              icon={Sparkles}
+              label="Deep review model"
+              value={status?.geniusProDeepReviewModel ?? "…"}
+              envKey="GENIUSPRO_DEEP_REVIEW_MODEL"
+              mono
+            />
+            <ConfigTile
+              icon={Timer}
+              label="API timeout"
+              value="120s"
+              envKey="geniuspro_service"
+            />
           </div>
         </div>
       </div>

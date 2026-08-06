@@ -1,63 +1,76 @@
 @import "tailwindcss";
 
+/* Enable class-based dark mode for Tailwind v4 */
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --sidebar-width: 200px;
-  --background: #000000;
-  --foreground: #ffffff;
-  --surface: #2c2c2e;
-  --primary: #1e40af;
-  --primary-accent: #3b82f6;
-  --primary-dark: #1e40af;
-  --on-surface: #ffffff;
+  --sidebar-width: 72px;
+  --background: #ffffff;
+  --foreground: #1a1a1a;
+  --surface: #f7f7f7;
+  --surface-2: #e5e5e5;
+  --primary: #1f81df;
+  --primary-accent: #3b9aef;
+  --primary-dark: #1f81df;
+  --primary-hover: #1a6fc2;
+  --primary-glow: rgba(31, 129, 223, 0.2);
+  --on-surface: #1a1a1a;
+  --border: rgba(31, 129, 223, 0.15);
+  --shadow-sm: 0 2px 4px rgba(31, 129, 223, 0.04);
+  --shadow-md: 0 4px 8px rgba(31, 129, 223, 0.06);
+  --shadow-lg: 0 8px 16px rgba(31, 129, 223, 0.08);
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(31, 129, 223, 0.15);
 }
 
 :root.light {
+  /* Match approvai-client Figma tokens */
   --background: #ffffff;
   --foreground: #1a1a1a;
-  --surface: #f1f5f9;
-  --surface-2: #e2e8f0;
-  --primary: #1e40af;
-  --primary-accent: #3b82f6;
-  --primary-dark: #1e40af;
-  --primary-hover: #1e3a8a;
-  --primary-glow: rgba(30, 64, 175, 0.2);
+  --surface: #f7f7f7;
+  --surface-2: #e5e5e5;
+  --primary: #1f81df;
+  --primary-accent: #3b9aef;
+  --primary-dark: #1f81df;
+  --primary-hover: #1a6fc2;
+  --primary-glow: rgba(31, 129, 223, 0.2);
   --on-surface: #1a1a1a;
-  --border: rgba(30, 64, 175, 0.15);
-  --shadow-sm: 0 2px 4px rgba(30, 64, 175, 0.04);
-  --shadow-md: 0 4px 8px rgba(30, 64, 175, 0.06);
-  --shadow-lg: 0 8px 16px rgba(30, 64, 175, 0.08);
+  --border: rgba(31, 129, 223, 0.15);
+  --shadow-sm: 0 2px 4px rgba(31, 129, 223, 0.04);
+  --shadow-md: 0 4px 8px rgba(31, 129, 223, 0.06);
+  --shadow-lg: 0 8px 16px rgba(31, 129, 223, 0.08);
   --glass-bg: rgba(255, 255, 255, 0.7);
-  --glass-border: rgba(30, 64, 175, 0.15);
+  --glass-border: rgba(31, 129, 223, 0.15);
 }
 
 :root.dark {
-  --background: #111827;
+  --background: #000000;
   --foreground: #ffffff;
-  --surface: #1f2937;
-  --surface-2: #374151;
-  --primary: #3b82f6;
-  --primary-accent: #60a5fa;
-  --primary-dark: #1e40af;
-  --primary-hover: #2563eb;
-  --primary-glow: rgba(59, 130, 246, 0.3);
+  --surface: #0d0d0d;
+  --surface-2: #1a1a1a;
+  --primary: #1f81df;
+  --primary-accent: #bddeff;
+  --primary-dark: #bddeff;
+  --primary-hover: #1a6fc2;
+  --primary-glow: rgba(31, 129, 223, 0.35);
   --on-surface: #ffffff;
   --border: rgba(255, 255, 255, 0.08);
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.10);
-  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.12);
-  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.15);
-  --glass-bg: rgba(17, 24, 39, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.1);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.3);
+  --glass-bg: rgba(13, 13, 13, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.08);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
   --color-primary: var(--primary);
   --color-primary-accent: var(--primary-accent);
   --color-primary-dark: var(--primary-dark);
+  --color-primary-hover: var(--primary-hover);
   --color-on-surface: var(--on-surface);
   --font-sans: "Google Sans Flex", system-ui, sans-serif;
 }
@@ -74,10 +87,23 @@ html {
   overflow-x: hidden;
 }
 
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: var(--background); }
-::-webkit-scrollbar-thumb { background: var(--surface); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--surface);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
 
 :focus-visible {
   outline: 2px solid var(--primary);
@@ -98,8 +124,14 @@ html {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .animate-fade-in {

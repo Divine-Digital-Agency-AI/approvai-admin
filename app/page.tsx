@@ -7,8 +7,10 @@ import { supabase } from "@/lib/supabase";
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
 import {
   Users, FolderKanban, Building2, FileSearch, MailPlus, AlertTriangle,
-  Cpu, TrendingUp, Clock, Activity
+  Cpu, TrendingUp, Activity
 } from "lucide-react";
+import { adminCardBorder, adminMuted, adminPagePad, adminSectionLabel } from "@/lib/themed-surfaces";
+import { cn } from "@/lib/utils";
 
 interface DashboardStats {
   totalUsers: number;
@@ -30,15 +32,15 @@ interface RecentActivity {
   created_at: string;
 }
 
-function StatCard({ label, value, icon: Icon, color }: { label: string; value: number | string; icon: React.ComponentType<{ className?: string }>; color: string }) {
+function StatCard({ label, value, icon: Icon, color }: { label: string; value: number | string; icon: React.ComponentType<{ className?: string; strokeWidth?: number }>; color: string }) {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5 flex items-start justify-between">
+    <div className={cn(adminCardBorder, "flex items-start justify-between")}>
       <div>
-        <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
-        <p className="text-2xl font-semibold text-gray-900 dark:text-white mt-1">{value}</p>
+        <p className={adminMuted}>{label}</p>
+        <p className="mt-1 text-2xl font-semibold tracking-tight text-[#1a1a1a] dark:text-white">{value}</p>
       </div>
-      <div className={`p-2.5 rounded-lg ${color}`}>
-        <Icon className="w-5 h-5" />
+      <div className={`rounded-[10px] p-2.5 ${color}`}>
+        <Icon className="h-5 w-5" strokeWidth={1.75} />
       </div>
     </div>
   );
@@ -47,18 +49,18 @@ function StatCard({ label, value, icon: Icon, color }: { label: string; value: n
 function SuccessRateBar({ success, total }: { success: number; total: number }) {
   const rate = total > 0 ? (success / total) * 100 : 0;
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-sm text-gray-500 dark:text-gray-400">Extraction Success Rate</span>
-        <span className="text-lg font-semibold text-gray-900 dark:text-white">{rate.toFixed(1)}%</span>
+    <div className={adminCardBorder}>
+      <div className="mb-2 flex items-center justify-between">
+        <span className={adminMuted}>Extraction Success Rate</span>
+        <span className="text-lg font-semibold text-[#1a1a1a] dark:text-white">{rate.toFixed(1)}%</span>
       </div>
-      <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+      <div className="h-2 w-full overflow-hidden rounded-full bg-[#e5e5e5] dark:bg-[#333333]">
         <div
-          className="h-full bg-green-500 rounded-full transition-all duration-500"
+          className="h-full rounded-full bg-[#1f81df] transition-all duration-500"
           style={{ width: `${rate}%` }}
         />
       </div>
-      <div className="flex justify-between text-xs text-gray-400 mt-1">
+      <div className="mt-1 flex justify-between text-xs text-[#999999]">
         <span>{success} successful</span>
         <span>{total - success} failed</span>
       </div>
@@ -185,51 +187,59 @@ export default function AdminDashboard() {
   if (loadingStats || !stats) return <DashboardSkeleton />;
 
   return (
-    <div className="p-6 space-y-6">
+    <div className={cn(adminPagePad, "space-y-6")}>
       <div>
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Dashboard</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Welcome back, {admin.authUser.email}</p>
+        <h1 className="text-xl font-semibold tracking-tight text-[#1a1a1a] dark:text-white sm:text-2xl">
+          Dashboard
+        </h1>
+        <p className={cn(adminMuted, "mt-1")}>Welcome back, {admin.authUser.email}</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        <StatCard label="Total Users" value={stats.totalUsers} icon={Users} color="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400" />
-        <StatCard label="Total Projects" value={stats.totalProjects} icon={FolderKanban} color="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400" />
-        <StatCard label="Municipalities" value={stats.totalMunicipalities} icon={Building2} color="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400" />
-        <StatCard label="Blueprints" value={stats.totalBlueprints} icon={FileSearch} color="bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400" />
-        <StatCard label="AI Extractions" value={stats.totalExtractions} icon={Cpu} color="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400" />
-        <StatCard label="AI API Calls" value={stats.totalAiCalls} icon={TrendingUp} color="bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400" />
-        <StatCard label="Early Access" value={stats.earlyAccessCount} icon={MailPlus} color="bg-teal-100 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400" />
-        <StatCard label="Failed Extractions" value={stats.failedExtractions} icon={AlertTriangle} color="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400" />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <StatCard label="Total Users" value={stats.totalUsers} icon={Users} color="bg-primary/10 text-primary" />
+        <StatCard label="Total Projects" value={stats.totalProjects} icon={FolderKanban} color="bg-primary/10 text-primary" />
+        <StatCard label="Municipalities" value={stats.totalMunicipalities} icon={Building2} color="bg-primary/10 text-primary" />
+        <StatCard label="Blueprints" value={stats.totalBlueprints} icon={FileSearch} color="bg-primary/10 text-primary" />
+        <StatCard label="AI Extractions" value={stats.totalExtractions} icon={Cpu} color="bg-primary/10 text-primary" />
+        <StatCard label="AI API Calls" value={stats.totalAiCalls} icon={TrendingUp} color="bg-amber-400/15 text-amber-600 dark:text-amber-400" />
+        <StatCard label="Early Access" value={stats.earlyAccessCount} icon={MailPlus} color="bg-primary/10 text-primary" />
+        <StatCard label="Failed Extractions" value={stats.failedExtractions} icon={AlertTriangle} color="bg-red-400/15 text-red-500" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <SuccessRateBar
           success={stats.successfulExtractions}
           total={stats.successfulExtractions + stats.failedExtractions}
         />
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <Activity className="w-4 h-4 text-primary" />
-            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Recent Activity</h3>
+        <div className={adminCardBorder}>
+          <div className="mb-4 flex items-center gap-2">
+            <Activity className="h-4 w-4 text-primary" strokeWidth={1.75} />
+            <h3 className={adminSectionLabel}>Recent Activity</h3>
           </div>
           <div className="space-y-3">
             {activity.length === 0 ? (
-              <p className="text-sm text-gray-400">No recent activity.</p>
+              <p className="text-sm text-[#999999]">No recent activity.</p>
             ) : (
               activity.map((item) => (
                 <div key={item.id} className="flex items-start gap-3">
-                  <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
-                    item.type === "user" ? "bg-blue-500" :
-                    item.type === "project" ? "bg-green-500" :
-                    item.type === "extraction" ? "bg-purple-500" :
-                    "bg-amber-500"
-                  }`} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-900 dark:text-white">{item.label}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{item.detail}</p>
+                  <div
+                    className={cn(
+                      "mt-1.5 h-2 w-2 shrink-0 rounded-full",
+                      item.type === "user" && "bg-[#1f81df]",
+                      item.type === "project" && "bg-emerald-500",
+                      item.type === "extraction" && "bg-[#3b9aef]",
+                      item.type !== "user" &&
+                        item.type !== "project" &&
+                        item.type !== "extraction" &&
+                        "bg-amber-500"
+                    )}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm text-[#1a1a1a] dark:text-white">{item.label}</p>
+                    <p className="truncate text-xs text-[#666666] dark:text-[#7f7f7f]">{item.detail}</p>
                   </div>
-                  <span className="text-xs text-gray-400 whitespace-nowrap flex-shrink-0">
+                  <span className="shrink-0 whitespace-nowrap text-xs text-[#999999]">
                     {formatRelativeTime(item.created_at)}
                   </span>
                 </div>

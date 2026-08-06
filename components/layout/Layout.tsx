@@ -4,8 +4,11 @@ import { usePathname } from "next/navigation";
 import { Sidebar } from "./Sidebar";
 import { SidebarProvider } from "./SidebarContext";
 import { Header } from "./Header";
+import { ThemeToggle } from "./ThemeToggle";
 import { useAuth } from "@/lib/auth-context";
 import { AuthSkeleton } from "@/components/skeletons/AuthSkeleton";
+import { adminShellInner, adminShellOuter } from "@/lib/themed-surfaces";
+import { cn } from "@/lib/utils";
 
 const PUBLIC_ROUTES = ["/login"];
 
@@ -27,15 +30,22 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-[#e5e5e5] dark:bg-black">
       <Sidebar />
       <div
-        className="flex-1 flex flex-col min-w-0 min-h-0"
-        style={{ marginLeft: "var(--sidebar-width, 200px)" }}
+        className="flex min-h-0 min-w-0 flex-1 flex-col"
+        style={{ marginLeft: "var(--sidebar-width, 72px)" }}
       >
-        <Header />
-        <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden bg-gray-50 dark:bg-gray-900 pt-14 md:pt-10">
-          <div className="min-h-full">{children}</div>
+        <Header hideOnDesktop />
+        <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-[#e5e5e5] pt-14 dark:bg-black md:pb-6 md:pr-6 md:pt-6">
+          <div className={cn(adminShellOuter)}>
+            <div className={cn(adminShellInner)}>
+              <div className="hidden shrink-0 items-center justify-end px-5 pt-5 md:flex sm:px-8 sm:pt-6">
+                <ThemeToggle />
+              </div>
+              {children}
+            </div>
+          </div>
         </main>
       </div>
     </div>
