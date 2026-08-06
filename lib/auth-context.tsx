@@ -100,31 +100,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     bootstrapAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      try {
-        if (event === "TOKEN_REFRESHED" && !session) {
-          if (isMounted) {
-            setAdmin(null);
-            setLoading(false);
-          }
-          return;
-        }
-        if (event === "SIGNED_OUT") {
-          if (isMounted) {
-            setAdmin(null);
-            setLoading(false);
-          }
-          return;
-        }
-        if (!isMounted) return;
-        await resolveAdmin(session?.user ?? null);
-      } catch (error) {
-        console.error("[AuthProvider] Auth state change failed:", error);
+    // Keep this callback sync: awaiting Supabase queries inside onAuthStateChange
+    // holds the auth lock and deadlocks (infinite AuthSkeleton on the live admin).
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "TOKEN_REFRESHED" && !session) {
         if (isMounted) {
           setAdmin(null);
           setLoading(false);
         }
+        return;
       }
+      if (event === "SIGNED_OUT") {
+        if (isMounted) {
+          setAdmin(null);
+          setLoading(false);
+        }
+        return;
+      }
+      if (!isMounted) return;
+      setTimeout(() => {
+        if (!isMounted) return;
+        void resolveAdmin(session?.user ?? null);
+      }, 0);
     });
 
     return () => {
