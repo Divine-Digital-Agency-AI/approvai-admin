@@ -48,7 +48,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const role = await fetchAdminRole(authUser.id);
       if (!role) {
-        await supabase.auth.signOut();
+        // Keep recovery sessions alive on /reset-password (e.g. end-user link misroute).
+        const onPasswordReset =
+          typeof window !== "undefined" &&
+          window.location.pathname.startsWith("/reset-password");
+        if (!onPasswordReset) {
+          await supabase.auth.signOut();
+        }
         setAdmin(null);
         setLoading(false);
         return;

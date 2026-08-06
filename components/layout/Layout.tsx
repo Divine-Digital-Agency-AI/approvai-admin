@@ -10,7 +10,7 @@ import { AuthSkeleton } from "@/components/skeletons/AuthSkeleton";
 import { adminShellInner, adminShellOuter } from "@/lib/themed-surfaces";
 import { cn } from "@/lib/utils";
 
-const PUBLIC_ROUTES = ["/login"];
+const PUBLIC_ROUTES = ["/login", "/reset-password"];
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

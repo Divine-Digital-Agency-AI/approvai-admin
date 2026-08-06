@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useTheme } from "@/lib/theme-context";
 import Button from "@/components/shared/Button";
 import Input from "@/components/shared/Input";
+import ForgotPasswordModal from "@/components/shared/ForgotPasswordModal";
 import { Sun, Moon, ArrowRight, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { authOverlayShell, themedFieldClass } from "@/lib/themed-surfaces";
@@ -15,6 +16,7 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
   const { signIn, admin, loading } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const router = useRouter();
@@ -112,6 +114,16 @@ export default function AdminLoginPage() {
             className={cn("bg-white dark:bg-[#1a1a1a]", themedFieldClass)}
           />
 
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => setShowForgot(true)}
+              className="text-sm font-medium text-primary hover:text-primary/80"
+            >
+              Forgot password?
+            </button>
+          </div>
+
           <Button
             type="submit"
             isLoading={isLoading}
@@ -124,6 +136,12 @@ export default function AdminLoginPage() {
           </Button>
         </form>
       </div>
+
+      <ForgotPasswordModal
+        open={showForgot}
+        onClose={() => setShowForgot(false)}
+        initialEmail={email}
+      />
     </div>
   );
 }

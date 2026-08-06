@@ -10,7 +10,16 @@ import ConfirmModal from "@/components/shared/ConfirmModal";
 import InviteUserModal from "@/components/shared/InviteUserModal";
 import Button from "@/components/shared/Button";
 import Pagination, { usePagination } from "@/components/shared/Pagination";
-import { Search, Users as UsersIcon, Shield, ChevronDown, FolderKanban, Trash2, UserPlus } from "lucide-react";
+import {
+  Search,
+  Users as UsersIcon,
+  Shield,
+  ChevronDown,
+  FolderKanban,
+  Trash2,
+  UserPlus,
+  KeyRound,
+} from "lucide-react";
 
 interface UserProfile {
   id: string;
@@ -37,6 +46,10 @@ export default function UsersPage() {
   const [deleteTarget, setDeleteTarget] = useState<UserProfile | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
+  const [resetTarget, setResetTarget] = useState<UserProfile | null>(null);
+  const [resetting, setResetting] = useState(false);
+  const [resetMessage, setResetMessage] = useState("");
+  const [resetError, setResetError] = useState("");
 
   useEffect(() => {
     if (!loading && !admin) router.push("/login");
@@ -106,6 +119,40 @@ export default function UsersPage() {
     }
   };
 
+  const handleResetPassword = async () => {
+    if (!resetTarget?.email) return;
+    setResetting(true);
+    setResetError("");
+    setResetMessage("");
+    try {
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !sessionData.session?.access_token) {
+        throw new Error("Not signed in.");
+      }
+      const res = await fetch("/api/admin/reset-user-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+        },
+        body: JSON.stringify({
+          email: resetTarget.email,
+          userId: resetTarget.user_id,
+        }),
+      });
+      const body = (await res.json()) as { error?: string; message?: string };
+      if (!res.ok) {
+        throw new Error(body.error || "Failed to send reset email.");
+      }
+      setResetMessage(body.message || `Reset email sent to ${resetTarget.email}.`);
+      setResetTarget(null);
+    } catch (err: unknown) {
+      setResetError(err instanceof Error ? err.message : "Failed to send reset email.");
+    } finally {
+      setResetting(false);
+    }
+  };
+
   const filtered = users.filter((u) => {
     const q = search.toLowerCase();
     const matchesSearch =
@@ -144,6 +191,17 @@ export default function UsersPage() {
           </Button>
         </div>
       </div>
+
+      {resetMessage && (
+        <div className="rounded-lg border border-green-400/40 bg-green-400/10 px-3 py-2 text-sm text-green-600 dark:text-green-400">
+          {resetMessage}
+        </div>
+      )}
+      {resetError && (
+        <div className="rounded-lg border border-red-400/40 bg-red-400/10 px-3 py-2 text-sm text-red-500">
+          {resetError}
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-2">
         {["all", "user", "admin", "super_admin"].map((role) => (
@@ -245,6 +303,20 @@ export default function UsersPage() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1">
+                      {user.email && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setResetError("");
+                            setResetMessage("");
+                            setResetTarget(user);
+                          }}
+                          className="p-1.5 rounded-lg text-primary hover:bg-primary/10 transition-colors"
+                          title="Send password reset email"
+                        >
+                          <KeyRound className="w-4 h-4" />
+                        </button>
+                      )}
                       {admin.role === "super_admin" && user.user_id !== admin.authUser.id && (
                         <button
                           onClick={(e) => {
@@ -318,6 +390,25 @@ export default function UsersPage() {
         open={showInvite}
         onClose={() => setShowInvite(false)}
         onUserCreated={fetchUsers}
+      />
+
+      <ConfirmModal
+        open={!!resetTarget}
+        onClose={() => {
+          if (!resetting) setResetTarget(null);
+        }}
+        onConfirm={handleResetPassword}
+        title="Reset password"
+        description={
+          <>
+            Send a password reset email to{" "}
+            <strong className="text-foreground">{resetTarget?.email}</strong>? They
+            will receive a link to choose a new password.
+          </>
+        }
+        confirmLabel="Send reset email"
+        variant="info"
+        isLoading={resetting}
       />
 
       <ConfirmModal
