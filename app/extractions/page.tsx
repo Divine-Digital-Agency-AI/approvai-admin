@@ -171,9 +171,11 @@ export default function ExtractionsPage() {
   const stats: UsageStats = {
     totalCalls: entries.length,
     successRate: entries.length > 0 ? (entries.filter((e) => e.status === "success").length / entries.length) * 100 : 0,
-    avgLatency: entries.length > 0
-      ? entries.reduce((sum, e) => sum + (e.latency_ms || 0), 0) / entries.filter((e) => e.latency_ms).length || 0
-      : 0,
+    avgLatency: (() => {
+      const withLatency = entries.filter((e) => e.latency_ms);
+      if (withLatency.length === 0) return 0;
+      return withLatency.reduce((sum, e) => sum + (e.latency_ms || 0), 0) / withLatency.length;
+    })(),
     totalTokens: entries.reduce((sum, e) => sum + (e.total_tokens || 0), 0),
   };
 

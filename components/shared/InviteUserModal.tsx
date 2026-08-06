@@ -4,7 +4,7 @@ import { useState } from "react";
 import { X, UserPlus } from "lucide-react";
 import Button from "./Button";
 import Input from "./Input";
-import { supabase } from "@/lib/supabase";
+import { adminFetch } from "@/lib/admin-api";
 
 interface InviteUserModalProps {
   open: boolean;
@@ -18,6 +18,7 @@ export default function InviteUserModal({
   onUserCreated,
 }: InviteUserModalProps) {
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [role, setRole] = useState<"user" | "admin">("user");
@@ -27,6 +28,7 @@ export default function InviteUserModal({
 
   const resetForm = () => {
     setEmail("");
+    setPassword("");
     setFirstName("");
     setLastName("");
     setRole("user");
@@ -48,37 +50,35 @@ export default function InviteUserModal({
       setError("Email is required.");
       return;
     }
+    if (password.trim().length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
 
     setSaving(true);
     try {
-      const { data: existing } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("email", email.trim().toLowerCase())
-        .limit(1);
-
-      if (existing && existing.length > 0) {
-        setError("A user with this email already exists.");
-        setSaving(false);
-        return;
-      }
-
-      const { error: insertError } = await supabase.from("profiles").insert({
-        email: email.trim().toLowerCase(),
-        first_name: firstName.trim() || null,
-        last_name: lastName.trim() || null,
-        role: role === "user" ? null : role,
+      const res = await adminFetch("/api/admin/create-user", {
+        method: "POST",
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          password: password.trim(),
+          first_name: firstName.trim() || null,
+          last_name: lastName.trim() || null,
+          role: role === "user" ? null : role,
+        }),
       });
-
-      if (insertError) throw insertError;
+      const payload = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) {
+        throw new Error(payload.error || "Failed to create user.");
+      }
 
       setSuccess(true);
       onUserCreated();
       setTimeout(() => {
         handleClose();
       }, 1200);
-    } catch (err: any) {
-      setError(err.message || "Failed to create user.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to create user.");
     } finally {
       setSaving(false);
     }
@@ -114,7 +114,7 @@ export default function InviteUserModal({
                 Create User
               </h3>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Add a new user profile to the system.
+                Create an auth account and profile.
               </p>
             </div>
           </div>
@@ -141,17 +141,32 @@ export default function InviteUserModal({
               placeholder="user@example.com"
             />
 
+            <Input
+              label="Temporary Password"
+              type="password"
+              value={password}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setPassword(e.target.value)
+              }
+              required
+              placeholder="At least 8 characters"
+            />
+
             <div className="grid grid-cols-2 gap-4">
               <Input
                 label="First Name"
                 value={firstName}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFirstName(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setFirstName(e.target.value)
+                }
                 placeholder="John"
               />
               <Input
                 label="Last Name"
                 value={lastName}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLastName(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setLastName(e.target.value)
+                }
                 placeholder="Doe"
               />
             </div>

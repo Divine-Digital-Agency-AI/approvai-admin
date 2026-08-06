@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { supabase } from "@/lib/supabase";
+import { adminFetch } from "@/lib/admin-api";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import Input from "@/components/shared/Input";
 import Button from "@/components/shared/Button";
@@ -51,6 +51,7 @@ export default function BlueprintsPage() {
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Blueprint | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [actionError, setActionError] = useState("");
 
   useEffect(() => {
     if (!loading && !admin) router.push("/login");
@@ -61,15 +62,14 @@ export default function BlueprintsPage() {
 
     async function fetchBlueprints() {
       try {
-        const { data, error } = await supabase
-          .from("blueprints")
-          .select("*")
-          .order("created_at", { ascending: false });
-
-        if (error) throw error;
-        setBlueprints(data || []);
+        setActionError("");
+        const res = await adminFetch("/api/admin/blueprints");
+        const payload = (await res.json()) as { blueprints?: Blueprint[]; error?: string };
+        if (!res.ok) throw new Error(payload.error || "Failed to fetch blueprints.");
+        setBlueprints(payload.blueprints || []);
       } catch (err) {
         console.error("Failed to fetch blueprints:", err);
+        setActionError(err instanceof Error ? err.message : "Failed to fetch blueprints.");
       } finally {
         setLoadingData(false);
       }
@@ -88,29 +88,16 @@ export default function BlueprintsPage() {
     setLoadingDetail(true);
 
     try {
-      const { data: extractionData } = await supabase
-        .from("extractions")
-        .select("*")
-        .eq("blueprint_id", bpId)
-        .order("created_at", { ascending: false })
-        .limit(1);
-
-      if (extractionData && extractionData.length > 0) {
-        const ext = extractionData[0];
-        const { data: fieldsData } = await supabase
-          .from("extracted_fields")
-          .select("field_category, field_name, field_value, confidence")
-          .eq("extraction_id", ext.id);
-
-        setExtractionDetail({
-          ...ext,
-          fields: fieldsData || [],
-        });
-      } else {
-        setExtractionDetail(null);
-      }
+      const res = await adminFetch(`/api/admin/blueprints?blueprintId=${encodeURIComponent(bpId)}`);
+      const payload = (await res.json()) as {
+        extraction?: ExtractionDetail | null;
+        error?: string;
+      };
+      if (!res.ok) throw new Error(payload.error || "Failed to fetch extraction details.");
+      setExtractionDetail(payload.extraction ?? null);
     } catch (err) {
       console.error("Failed to fetch extraction details:", err);
+      setActionError(err instanceof Error ? err.message : "Failed to fetch extraction details.");
     } finally {
       setLoadingDetail(false);
     }
@@ -118,10 +105,13 @@ export default function BlueprintsPage() {
 
   const handleResetStatus = async (bpId: string) => {
     try {
-      await supabase
-        .from("blueprints")
-        .update({ status: "uploaded", processing_error: null })
-        .eq("id", bpId);
+      setActionError("");
+      const res = await adminFetch("/api/admin/blueprints", {
+        method: "PATCH",
+        body: JSON.stringify({ blueprintId: bpId, action: "reset" }),
+      });
+      const payload = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(payload.error || "Failed to reset status.");
       setBlueprints((prev) =>
         prev.map((b) =>
           b.id === bpId ? { ...b, status: "uploaded", processing_error: null } : b
@@ -129,6 +119,7 @@ export default function BlueprintsPage() {
       );
     } catch (err) {
       console.error("Failed to reset status:", err);
+      setActionError(err instanceof Error ? err.message : "Failed to reset status.");
     }
   };
 
@@ -136,17 +127,13 @@ export default function BlueprintsPage() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      const { data: extractions } = await supabase
-        .from("extractions")
-        .select("id")
-        .eq("blueprint_id", deleteTarget.id);
-
-      const extractionIds = (extractions || []).map((e) => e.id);
-      if (extractionIds.length > 0) {
-        await supabase.from("extracted_fields").delete().in("extraction_id", extractionIds);
-      }
-      await supabase.from("extractions").delete().eq("blueprint_id", deleteTarget.id);
-      await supabase.from("blueprints").delete().eq("id", deleteTarget.id);
+      setActionError("");
+      const res = await adminFetch("/api/admin/blueprints", {
+        method: "DELETE",
+        body: JSON.stringify({ blueprintId: deleteTarget.id }),
+      });
+      const payload = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(payload.error || "Failed to delete blueprint.");
       setBlueprints((prev) => prev.filter((b) => b.id !== deleteTarget.id));
       if (expandedBp === deleteTarget.id) {
         setExpandedBp(null);
@@ -155,6 +142,7 @@ export default function BlueprintsPage() {
       setDeleteTarget(null);
     } catch (err) {
       console.error("Failed to delete blueprint:", err);
+      setActionError(err instanceof Error ? err.message : "Failed to delete blueprint.");
     } finally {
       setDeleting(false);
     }
@@ -185,6 +173,12 @@ export default function BlueprintsPage() {
         </div>
         <span className="text-sm text-gray-500 dark:text-gray-400">{filtered.length} blueprints</span>
       </div>
+
+      {actionError && (
+        <div className="p-3 bg-red-400/20 border border-red-400/50 rounded-lg text-red-400 text-sm">
+          {actionError}
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-2">
         {["all", "uploaded", "classifying", "extracting", "processed", "error"].map((status) => (
@@ -227,9 +221,8 @@ export default function BlueprintsPage() {
           </thead>
           <tbody>
             {paginatedItems.map((bp) => (
-              <>
+              <Fragment key={bp.id}>
                 <tr
-                  key={bp.id}
                   className="border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors cursor-pointer"
                   onClick={() => handleExpand(bp.id)}
                 >
@@ -273,7 +266,7 @@ export default function BlueprintsPage() {
                   </td>
                 </tr>
                 {expandedBp === bp.id && (
-                  <tr key={`${bp.id}-detail`} className="bg-gray-50 dark:bg-gray-800/50">
+                  <tr className="bg-gray-50 dark:bg-gray-800/50">
                     <td colSpan={6} className="px-6 py-4">
                       {loadingDetail ? (
                         <div className="animate-pulse space-y-2">
@@ -347,7 +340,7 @@ export default function BlueprintsPage() {
                     </td>
                   </tr>
                 )}
-              </>
+              </Fragment>
             ))}
             {filtered.length === 0 && (
               <tr>

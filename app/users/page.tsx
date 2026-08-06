@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { supabase } from "@/lib/supabase";
+import { adminFetch } from "@/lib/admin-api";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import Input from "@/components/shared/Input";
 import ConfirmModal from "@/components/shared/ConfirmModal";
@@ -57,28 +57,10 @@ export default function UsersPage() {
 
   const fetchUsers = async () => {
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-
-      const { data: projectCounts } = await supabase
-        .from("projects")
-        .select("user_id");
-
-      const countMap: Record<string, number> = {};
-      for (const p of projectCounts || []) {
-        countMap[p.user_id] = (countMap[p.user_id] || 0) + 1;
-      }
-
-      setUsers(
-        (data || []).map((u) => ({
-          ...u,
-          projectCount: countMap[u.user_id] || 0,
-        }))
-      );
+      const res = await adminFetch("/api/admin/users");
+      const body = (await res.json()) as { users?: UserProfile[]; error?: string };
+      if (!res.ok) throw new Error(body.error || "Failed to load users.");
+      setUsers(body.users || []);
     } catch (err) {
       console.error("Failed to fetch users:", err);
     } finally {
@@ -91,12 +73,18 @@ export default function UsersPage() {
     fetchUsers();
   }, [admin]);
 
-  const handleRoleChange = async (userId: string, profileId: string, newRole: string) => {
+  const handleRoleChange = async (_userId: string, profileId: string, newRole: string) => {
     try {
-      const roleValue = newRole === "user" ? null : newRole;
-      await supabase.from("profiles").update({ role: roleValue }).eq("id", profileId);
+      const res = await adminFetch("/api/admin/users", {
+        method: "PATCH",
+        body: JSON.stringify({ profileId, role: newRole }),
+      });
+      const body = (await res.json()) as { error?: string; role?: string | null };
+      if (!res.ok) throw new Error(body.error || "Failed to update role.");
       setUsers((prev) =>
-        prev.map((u) => (u.id === profileId ? { ...u, role: roleValue } : u))
+        prev.map((u) =>
+          u.id === profileId ? { ...u, role: body.role ?? null } : u
+        )
       );
     } catch (err) {
       console.error("Failed to update role:", err);
@@ -108,8 +96,15 @@ export default function UsersPage() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await supabase.from("projects").delete().eq("user_id", deleteTarget.user_id);
-      await supabase.from("profiles").delete().eq("id", deleteTarget.id);
+      const res = await adminFetch("/api/admin/users", {
+        method: "DELETE",
+        body: JSON.stringify({
+          profileId: deleteTarget.id,
+          userId: deleteTarget.user_id,
+        }),
+      });
+      const body = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(body.error || "Failed to delete user.");
       setUsers((prev) => prev.filter((u) => u.id !== deleteTarget.id));
       setDeleteTarget(null);
     } catch (err) {
@@ -125,16 +120,8 @@ export default function UsersPage() {
     setResetError("");
     setResetMessage("");
     try {
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError || !sessionData.session?.access_token) {
-        throw new Error("Not signed in.");
-      }
-      const res = await fetch("/api/admin/reset-user-password", {
+      const res = await adminFetch("/api/admin/reset-user-password", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${sessionData.session.access_token}`,
-        },
         body: JSON.stringify({
           email: resetTarget.email,
           userId: resetTarget.user_id,
@@ -246,9 +233,8 @@ export default function UsersPage() {
           </thead>
           <tbody>
             {paginatedItems.map((user) => (
-              <>
+              <Fragment key={user.id}>
                 <tr
-                  key={user.id}
                   className="border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors cursor-pointer"
                   onClick={() => setExpandedUser(expandedUser === user.id ? null : user.id)}
                 >
@@ -338,7 +324,7 @@ export default function UsersPage() {
                   </td>
                 </tr>
                 {expandedUser === user.id && (
-                  <tr key={`${user.id}-detail`} className="bg-gray-50 dark:bg-gray-800/50">
+                  <tr className="bg-gray-50 dark:bg-gray-800/50">
                     <td colSpan={6} className="px-6 py-4">
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                         <div>
@@ -367,7 +353,7 @@ export default function UsersPage() {
                     </td>
                   </tr>
                 )}
-              </>
+              </Fragment>
             ))}
             {filtered.length === 0 && (
               <tr>

@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { supabase } from "@/lib/supabase";
+import { adminFetch } from "@/lib/admin-api";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import Input from "@/components/shared/Input";
 import ConfirmModal from "@/components/shared/ConfirmModal";
@@ -46,6 +46,7 @@ export default function ProjectsPage() {
   const [expandedProject, setExpandedProject] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [actionError, setActionError] = useState("");
 
   useEffect(() => {
     if (!loading && !admin) router.push("/login");
@@ -56,30 +57,14 @@ export default function ProjectsPage() {
 
     async function fetchProjects() {
       try {
-        const { data, error } = await supabase
-          .from("projects")
-          .select("*, profiles!projects_user_id_fkey(email, first_name, last_name)")
-          .order("created_at", { ascending: false });
-
-        if (error) {
-          const { data: fallback, error: fallbackError } = await supabase
-            .from("projects")
-            .select("*")
-            .order("created_at", { ascending: false });
-          if (fallbackError) throw fallbackError;
-          setProjects(fallback || []);
-        } else {
-          const { data: bpCounts } = await supabase.from("blueprints").select("project_id");
-          const bpMap: Record<string, number> = {};
-          for (const bp of bpCounts || []) {
-            bpMap[bp.project_id] = (bpMap[bp.project_id] || 0) + 1;
-          }
-          setProjects(
-            (data || []).map((p) => ({ ...p, blueprintCount: bpMap[p.id] || 0 }))
-          );
-        }
+        setActionError("");
+        const res = await adminFetch("/api/admin/projects");
+        const payload = (await res.json()) as { projects?: Project[]; error?: string };
+        if (!res.ok) throw new Error(payload.error || "Failed to fetch projects.");
+        setProjects(payload.projects || []);
       } catch (err) {
         console.error("Failed to fetch projects:", err);
+        setActionError(err instanceof Error ? err.message : "Failed to fetch projects.");
       } finally {
         setLoadingData(false);
       }
@@ -90,12 +75,19 @@ export default function ProjectsPage() {
 
   const handleStatusChange = async (projectId: string, newStatus: string) => {
     try {
-      await supabase.from("projects").update({ status: newStatus }).eq("id", projectId);
+      setActionError("");
+      const res = await adminFetch("/api/admin/projects", {
+        method: "PATCH",
+        body: JSON.stringify({ projectId, status: newStatus }),
+      });
+      const payload = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(payload.error || "Failed to update status.");
       setProjects((prev) =>
         prev.map((p) => (p.id === projectId ? { ...p, status: newStatus } : p))
       );
     } catch (err) {
       console.error("Failed to update status:", err);
+      setActionError(err instanceof Error ? err.message : "Failed to update status.");
     }
   };
 
@@ -103,12 +95,18 @@ export default function ProjectsPage() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await supabase.from("blueprints").delete().eq("project_id", deleteTarget.id);
-      await supabase.from("projects").delete().eq("id", deleteTarget.id);
+      setActionError("");
+      const res = await adminFetch("/api/admin/projects", {
+        method: "DELETE",
+        body: JSON.stringify({ projectId: deleteTarget.id }),
+      });
+      const payload = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(payload.error || "Failed to delete project.");
       setProjects((prev) => prev.filter((p) => p.id !== deleteTarget.id));
       setDeleteTarget(null);
     } catch (err) {
       console.error("Failed to delete project:", err);
+      setActionError(err instanceof Error ? err.message : "Failed to delete project.");
     } finally {
       setDeleting(false);
     }
@@ -144,6 +142,12 @@ export default function ProjectsPage() {
         </div>
         <span className="text-sm text-gray-500 dark:text-gray-400">{filtered.length} projects</span>
       </div>
+
+      {actionError && (
+        <div className="p-3 bg-red-400/20 border border-red-400/50 rounded-lg text-red-400 text-sm">
+          {actionError}
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-2">
         {["all", ...ALL_STATUSES].map((status) => (
@@ -188,9 +192,8 @@ export default function ProjectsPage() {
           </thead>
           <tbody>
             {paginatedItems.map((project) => (
-              <>
+              <Fragment key={project.id}>
                 <tr
-                  key={project.id}
                   className="border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors cursor-pointer"
                   onClick={() => setExpandedProject(expandedProject === project.id ? null : project.id)}
                 >
@@ -238,7 +241,7 @@ export default function ProjectsPage() {
                   </td>
                 </tr>
                 {expandedProject === project.id && (
-                  <tr key={`${project.id}-detail`} className="bg-gray-50 dark:bg-gray-800/50">
+                  <tr className="bg-gray-50 dark:bg-gray-800/50">
                     <td colSpan={6} className="px-6 py-4">
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                         <div>
@@ -271,7 +274,7 @@ export default function ProjectsPage() {
                     </td>
                   </tr>
                 )}
-              </>
+              </Fragment>
             ))}
             {filtered.length === 0 && (
               <tr>

@@ -4,28 +4,42 @@ import {
   normalizeEmail,
   requireAdminRoleFromBearerToken,
 } from "@/app/api/admin/_lib/auth";
+import { authErrorStatus, jsonError } from "@/app/api/admin/_lib/http";
 
 type CreateUserBody = {
   email?: string;
   password?: string;
+  first_name?: string;
+  last_name?: string;
+  role?: string | null;
 };
 
 export async function POST(req: Request) {
   try {
-    await requireAdminRoleFromBearerToken(req.headers.get("authorization"));
+    const admin = await requireAdminRoleFromBearerToken(
+      req.headers.get("authorization")
+    );
 
     const body = (await req.json()) as CreateUserBody;
     const email = normalizeEmail(body.email ?? "");
     const password = body.password?.trim() ?? "";
+    const firstName = (body.first_name ?? "").trim() || null;
+    const lastName = (body.last_name ?? "").trim() || null;
+
+    let role: string | null = body.role ?? null;
+    if (role === "user" || role === "") role = null;
+    if (role !== null && role !== "admin" && role !== "super_admin") {
+      return jsonError("Invalid role.", 400);
+    }
+    if (role !== null && admin.role !== "super_admin") {
+      return jsonError("Only super admins can assign admin roles.", 403);
+    }
 
     if (!email) {
-      return NextResponse.json({ error: "Email is required." }, { status: 400 });
+      return jsonError("Email is required.", 400);
     }
     if (!password || password.length < 8) {
-      return NextResponse.json(
-        { error: "Password must be at least 8 characters." },
-        { status: 400 }
-      );
+      return jsonError("Password must be at least 8 characters.", 400);
     }
 
     const supabase = createServiceClient();
@@ -38,23 +52,22 @@ export async function POST(req: Request) {
       });
 
     if (createError || !createdUser.user) {
-      return NextResponse.json(
-        { error: createError?.message || "Failed to create user." },
-        { status: 400 }
-      );
+      return jsonError(createError?.message || "Failed to create user.", 400);
     }
 
     const { error: profileError } = await supabase.from("profiles").upsert(
       {
         user_id: createdUser.user.id,
         email,
-        role: null,
+        first_name: firstName,
+        last_name: lastName,
+        role,
       },
       { onConflict: "user_id" }
     );
 
     if (profileError) {
-      return NextResponse.json({ error: profileError.message }, { status: 400 });
+      return jsonError(profileError.message, 400);
     }
 
     const { error: listError } = await supabase
@@ -62,14 +75,12 @@ export async function POST(req: Request) {
       .upsert({ email }, { onConflict: "email", ignoreDuplicates: true });
 
     if (listError) {
-      return NextResponse.json({ error: listError.message }, { status: 400 });
+      return jsonError(listError.message, 400);
     }
 
     return NextResponse.json({ ok: true, userId: createdUser.user.id });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
-    const status =
-      message === "Unauthorized." || message === "Forbidden." ? 403 : 500;
-    return NextResponse.json({ error: message }, { status });
+    return jsonError(message, authErrorStatus(message));
   }
 }

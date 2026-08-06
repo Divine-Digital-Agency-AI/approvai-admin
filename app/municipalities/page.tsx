@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { supabase } from "@/lib/supabase";
+import { adminFetch } from "@/lib/admin-api";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import Input from "@/components/shared/Input";
 import Button from "@/components/shared/Button";
@@ -45,15 +45,17 @@ export default function MunicipalitiesPage() {
 
   const fetchMunicipalities = async () => {
     try {
-      const { data, error } = await supabase
-        .from("municipalities")
-        .select("id, name, slug, county, state, is_active, approved, website_url, permit_form_template")
-        .order("name", { ascending: true });
-
-      if (error) throw error;
-      setMunicipalities(data || []);
+      setFormError("");
+      const res = await adminFetch("/api/admin/municipalities");
+      const payload = (await res.json()) as {
+        municipalities?: Municipality[];
+        error?: string;
+      };
+      if (!res.ok) throw new Error(payload.error || "Failed to fetch municipalities.");
+      setMunicipalities(payload.municipalities || []);
     } catch (err) {
       console.error("Failed to fetch municipalities:", err);
+      setFormError(err instanceof Error ? err.message : "Failed to fetch municipalities.");
     } finally {
       setLoadingData(false);
     }
@@ -66,23 +68,37 @@ export default function MunicipalitiesPage() {
 
   const toggleApproved = async (id: string, currentValue: boolean) => {
     try {
-      await supabase.from("municipalities").update({ approved: !currentValue }).eq("id", id);
+      setFormError("");
+      const res = await adminFetch("/api/admin/municipalities", {
+        method: "PATCH",
+        body: JSON.stringify({ id, approved: !currentValue }),
+      });
+      const payload = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(payload.error || "Failed to toggle approved.");
       setMunicipalities((prev) =>
         prev.map((m) => (m.id === id ? { ...m, approved: !currentValue } : m))
       );
     } catch (err) {
       console.error("Failed to toggle approved:", err);
+      setFormError(err instanceof Error ? err.message : "Failed to toggle approved.");
     }
   };
 
   const toggleActive = async (id: string, currentValue: boolean) => {
     try {
-      await supabase.from("municipalities").update({ is_active: !currentValue }).eq("id", id);
+      setFormError("");
+      const res = await adminFetch("/api/admin/municipalities", {
+        method: "PATCH",
+        body: JSON.stringify({ id, is_active: !currentValue }),
+      });
+      const payload = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(payload.error || "Failed to toggle active.");
       setMunicipalities((prev) =>
         prev.map((m) => (m.id === id ? { ...m, is_active: !currentValue } : m))
       );
     } catch (err) {
       console.error("Failed to toggle active:", err);
+      setFormError(err instanceof Error ? err.message : "Failed to toggle active.");
     }
   };
 
@@ -127,18 +143,19 @@ export default function MunicipalitiesPage() {
         permit_form_template: form.permit_form_template || null,
       };
 
-      if (editingId) {
-        await supabase.from("municipalities").update(payload).eq("id", editingId);
-      } else {
-        await supabase.from("municipalities").insert(payload);
-      }
+      const res = await adminFetch("/api/admin/municipalities", {
+        method: editingId ? "PATCH" : "POST",
+        body: JSON.stringify(editingId ? { id: editingId, ...payload } : payload),
+      });
+      const result = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(result.error || "Failed to save.");
 
       setShowForm(false);
       setForm(emptyForm);
       setEditingId(null);
       await fetchMunicipalities();
-    } catch (err: any) {
-      setFormError(err.message || "Failed to save.");
+    } catch (err: unknown) {
+      setFormError(err instanceof Error ? err.message : "Failed to save.");
     } finally {
       setSaving(false);
     }
@@ -148,11 +165,18 @@ export default function MunicipalitiesPage() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await supabase.from("municipalities").delete().eq("id", deleteTarget.id);
+      setFormError("");
+      const res = await adminFetch("/api/admin/municipalities", {
+        method: "DELETE",
+        body: JSON.stringify({ id: deleteTarget.id }),
+      });
+      const payload = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(payload.error || "Failed to delete municipality.");
       setMunicipalities((prev) => prev.filter((m) => m.id !== deleteTarget.id));
       setDeleteTarget(null);
     } catch (err) {
       console.error("Failed to delete municipality:", err);
+      setFormError(err instanceof Error ? err.message : "Failed to delete municipality.");
     } finally {
       setDeleting(false);
     }

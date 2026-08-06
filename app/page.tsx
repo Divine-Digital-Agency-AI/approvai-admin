@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { supabase } from "@/lib/supabase";
+import { adminFetch } from "@/lib/admin-api";
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
 import {
   Users, FolderKanban, Building2, FileSearch, MailPlus, AlertTriangle,
@@ -74,6 +74,7 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [activity, setActivity] = useState<RecentActivity[]>([]);
   const [loadingStats, setLoadingStats] = useState(true);
+  const [statsError, setStatsError] = useState("");
 
   useEffect(() => {
     if (!loading && !admin) {
@@ -86,95 +87,63 @@ export default function AdminDashboard() {
 
     async function fetchStats() {
       try {
-        const [usersRes, projectsRes, municipalitiesRes, blueprintsRes, failedRes, extractionsRes] = await Promise.all([
-          supabase.from("profiles").select("id", { count: "exact", head: true }),
-          supabase.from("projects").select("id", { count: "exact", head: true }),
-          supabase.from("municipalities").select("id", { count: "exact", head: true }),
-          supabase.from("blueprints").select("id", { count: "exact", head: true }),
-          supabase.from("blueprints").select("id", { count: "exact", head: true }).eq("status", "error"),
-          supabase.from("extractions").select("id", { count: "exact", head: true }),
-        ]);
-
-        const processedRes = await supabase
-          .from("blueprints")
-          .select("id", { count: "exact", head: true })
-          .eq("status", "processed");
-
-        let earlyAccessCount = 0;
-        try {
-          const earlyRes = await supabase.from("early_access_emails").select("id", { count: "exact", head: true });
-          earlyAccessCount = earlyRes.count ?? 0;
-        } catch { /* table may not exist */ }
-
-        let totalAiCalls = 0;
-        try {
-          const aiRes = await supabase.from("ai_usage_log").select("id", { count: "exact", head: true });
-          totalAiCalls = aiRes.count ?? 0;
-        } catch { /* table may not exist */ }
+        setStatsError("");
+        const res = await adminFetch("/api/admin/stats");
+        const payload = (await res.json()) as {
+          stats?: {
+            totalUsers: number;
+            totalProjects: number;
+            totalMunicipalities: number;
+            totalBlueprints: number;
+            aiApiCalls: number;
+            failedExtractions: number;
+            aiExtractions: number;
+            earlyAccessRequests: number;
+            successfulExtractions: number;
+          };
+          recentActivity?: {
+            id: string;
+            kind: string;
+            label: string;
+            at: string;
+            meta: string | number | null;
+          }[];
+          error?: string;
+        };
+        if (!res.ok || !payload.stats) {
+          throw new Error(payload.error || "Failed to fetch dashboard stats.");
+        }
 
         setStats({
-          totalUsers: usersRes.count ?? 0,
-          totalProjects: projectsRes.count ?? 0,
-          totalMunicipalities: municipalitiesRes.count ?? 0,
-          totalBlueprints: blueprintsRes.count ?? 0,
-          earlyAccessCount,
-          failedExtractions: failedRes.count ?? 0,
-          totalExtractions: extractionsRes.count ?? 0,
-          successfulExtractions: processedRes.count ?? 0,
-          totalAiCalls,
+          totalUsers: payload.stats.totalUsers,
+          totalProjects: payload.stats.totalProjects,
+          totalMunicipalities: payload.stats.totalMunicipalities,
+          totalBlueprints: payload.stats.totalBlueprints,
+          earlyAccessCount: payload.stats.earlyAccessRequests,
+          failedExtractions: payload.stats.failedExtractions,
+          totalExtractions: payload.stats.aiExtractions,
+          successfulExtractions: payload.stats.successfulExtractions,
+          totalAiCalls: payload.stats.aiApiCalls,
         });
 
-        const recentItems: RecentActivity[] = [];
-
-        const { data: recentUsers } = await supabase
-          .from("profiles")
-          .select("id, email, created_at")
-          .order("created_at", { ascending: false })
-          .limit(3);
-        for (const u of recentUsers || []) {
-          recentItems.push({
-            id: `user-${u.id}`,
-            type: "user",
-            label: "New user signup",
-            detail: u.email || "Unknown",
-            created_at: u.created_at,
-          });
-        }
-
-        const { data: recentProjects } = await supabase
-          .from("projects")
-          .select("id, name, created_at")
-          .order("created_at", { ascending: false })
-          .limit(3);
-        for (const p of recentProjects || []) {
-          recentItems.push({
-            id: `project-${p.id}`,
-            type: "project",
-            label: "Project created",
-            detail: p.name,
-            created_at: p.created_at,
-          });
-        }
-
-        const { data: recentExtractions } = await supabase
-          .from("extractions")
-          .select("id, ai_model_used, created_at")
-          .order("created_at", { ascending: false })
-          .limit(3);
-        for (const e of recentExtractions || []) {
-          recentItems.push({
-            id: `extraction-${e.id}`,
-            type: "extraction",
-            label: "Extraction completed",
-            detail: e.ai_model_used,
-            created_at: e.created_at,
-          });
-        }
-
-        recentItems.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-        setActivity(recentItems.slice(0, 8));
+        const kindMap: Record<string, RecentActivity["type"]> = {
+          user: "user",
+          project: "project",
+          extraction: "extraction",
+        };
+        setActivity(
+          (payload.recentActivity || []).slice(0, 8).map((item) => ({
+            id: `${item.kind}-${item.id}`,
+            type: kindMap[item.kind] || "ai_call",
+            label: item.label,
+            detail: item.meta == null ? "" : String(item.meta),
+            created_at: item.at,
+          }))
+        );
       } catch (err) {
         console.error("Failed to fetch dashboard stats:", err);
+        setStatsError(err instanceof Error ? err.message : "Failed to load dashboard.");
+        setStats(null);
       } finally {
         setLoadingStats(false);
       }
@@ -184,7 +153,39 @@ export default function AdminDashboard() {
   }, [admin]);
 
   if (loading || !admin) return <DashboardSkeleton />;
-  if (loadingStats || !stats) return <DashboardSkeleton />;
+  if (loadingStats) return <DashboardSkeleton />;
+  if (!stats) {
+    return (
+      <div className={cn(adminPagePad, "space-y-4")}>
+        <h1 className="text-xl font-semibold tracking-tight text-[#1a1a1a] dark:text-white">
+          Dashboard
+        </h1>
+        <div className="p-3 bg-red-400/20 border border-red-400/50 rounded-lg text-red-400 text-sm">
+          {statsError || "Failed to load dashboard stats."}
+        </div>
+        <button
+          type="button"
+          className="text-sm text-primary underline"
+          onClick={() => {
+            setLoadingStats(true);
+            setStatsError("");
+            void (async () => {
+              try {
+                const res = await adminFetch("/api/admin/stats");
+                if (!res.ok) throw new Error("Retry failed.");
+                window.location.reload();
+              } catch (e) {
+                setStatsError(e instanceof Error ? e.message : "Retry failed.");
+                setLoadingStats(false);
+              }
+            })();
+          }}
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className={cn(adminPagePad, "space-y-6")}>

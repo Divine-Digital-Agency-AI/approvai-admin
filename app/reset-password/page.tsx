@@ -43,9 +43,10 @@ export default function AdminResetPasswordPage() {
         }
       }
 
+      // Keep callback sync — awaiting inside onAuthStateChange holds the auth lock.
       const {
         data: { subscription },
-      } = supabase.auth.onAuthStateChange(async (event, session) => {
+      } = supabase.auth.onAuthStateChange((event, session) => {
         if (cancelled) return;
         if (event === "PASSWORD_RECOVERY") {
           setIsValidSession(true);
@@ -55,16 +56,16 @@ export default function AdminResetPasswordPage() {
       });
       unsubscribe = () => subscription.unsubscribe();
 
-      timeoutId = setTimeout(async () => {
+      timeoutId = setTimeout(() => {
         if (cancelled) return;
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        if (session && hasRecoveryToken) {
-          setIsValidSession(true);
-        } else {
-          setIsValidSession((prev) => (prev === null ? false : prev));
-        }
+        void supabase.auth.getSession().then(({ data: { session } }) => {
+          if (cancelled) return;
+          if (session && hasRecoveryToken) {
+            setIsValidSession(true);
+          } else {
+            setIsValidSession((prev) => (prev === null ? false : prev));
+          }
+        });
       }, 2000);
     };
 
