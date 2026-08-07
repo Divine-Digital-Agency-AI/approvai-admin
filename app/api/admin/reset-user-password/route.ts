@@ -4,6 +4,7 @@ import {
   normalizeEmail,
   requireAdminRoleFromBearerToken,
 } from "@/app/api/admin/_lib/auth";
+import { authErrorStatus, jsonError } from "@/app/api/admin/_lib/http";
 import {
   getAdminPublicUrl,
   getBackendUrl,
@@ -85,14 +86,6 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
-    const status =
-      message === "Unauthorized." ||
-      message === "Forbidden." ||
-      message === "Missing or invalid Authorization header." ||
-      message === "Missing access token." ||
-      message === "Admin profile not found."
-        ? 403
-        : 500;
-    return NextResponse.json({ error: message }, { status });
+    return jsonError(message, authErrorStatus(message));
   }
 }

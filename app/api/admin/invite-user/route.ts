@@ -4,6 +4,7 @@ import {
   normalizeEmail,
   requireAdminRoleFromBearerToken,
 } from "@/app/api/admin/_lib/auth";
+import { authErrorStatus, jsonError } from "@/app/api/admin/_lib/http";
 
 type InviteBody = {
   email?: string;
@@ -37,8 +38,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
-    const status =
-      message === "Unauthorized." || message === "Forbidden." ? 403 : 500;
-    return NextResponse.json({ error: message }, { status });
+    return jsonError(message, authErrorStatus(message));
   }
 }

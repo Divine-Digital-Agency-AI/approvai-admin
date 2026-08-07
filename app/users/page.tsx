@@ -50,6 +50,7 @@ export default function UsersPage() {
   const [resetting, setResetting] = useState(false);
   const [resetMessage, setResetMessage] = useState("");
   const [resetError, setResetError] = useState("");
+  const [actionError, setActionError] = useState("");
 
   useEffect(() => {
     if (!loading && !admin) router.push("/login");
@@ -57,12 +58,14 @@ export default function UsersPage() {
 
   const fetchUsers = async () => {
     try {
+      setActionError("");
       const res = await adminFetch("/api/admin/users");
       const body = (await res.json()) as { users?: UserProfile[]; error?: string };
       if (!res.ok) throw new Error(body.error || "Failed to load users.");
       setUsers(body.users || []);
     } catch (err) {
       console.error("Failed to fetch users:", err);
+      setActionError(err instanceof Error ? err.message : "Failed to load users.");
     } finally {
       setLoadingData(false);
     }
@@ -75,6 +78,7 @@ export default function UsersPage() {
 
   const handleRoleChange = async (_userId: string, profileId: string, newRole: string) => {
     try {
+      setActionError("");
       const res = await adminFetch("/api/admin/users", {
         method: "PATCH",
         body: JSON.stringify({ profileId, role: newRole }),
@@ -88,6 +92,7 @@ export default function UsersPage() {
       );
     } catch (err) {
       console.error("Failed to update role:", err);
+      setActionError(err instanceof Error ? err.message : "Failed to update role.");
     }
     setEditingRole(null);
   };
@@ -96,6 +101,7 @@ export default function UsersPage() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
+      setActionError("");
       const res = await adminFetch("/api/admin/users", {
         method: "DELETE",
         body: JSON.stringify({
@@ -109,6 +115,7 @@ export default function UsersPage() {
       setDeleteTarget(null);
     } catch (err) {
       console.error("Failed to delete user:", err);
+      setActionError(err instanceof Error ? err.message : "Failed to delete user.");
     } finally {
       setDeleting(false);
     }
@@ -179,6 +186,11 @@ export default function UsersPage() {
         </div>
       </div>
 
+      {actionError && (
+        <div className="rounded-lg border border-red-400/40 bg-red-400/10 px-3 py-2 text-sm text-red-500">
+          {actionError}
+        </div>
+      )}
       {resetMessage && (
         <div className="rounded-lg border border-green-400/40 bg-green-400/10 px-3 py-2 text-sm text-green-600 dark:text-green-400">
           {resetMessage}

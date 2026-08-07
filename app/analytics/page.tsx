@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { supabase } from "@/lib/supabase";
+import { adminFetch } from "@/lib/admin-api";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
-import { BarChart3, TrendingUp, Users, FolderKanban, Cpu } from "lucide-react";
+import { BarChart3 } from "lucide-react";
 
 interface TimePoint {
   date: string;
@@ -51,36 +51,14 @@ function MiniChart({ data, color, label }: { data: TimePoint[]; color: string; l
   );
 }
 
-function groupByDay(rows: { created_at: string }[], days: number = 30): TimePoint[] {
-  const now = new Date();
-  const buckets: Record<string, number> = {};
-
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(now);
-    d.setDate(d.getDate() - i);
-    const key = d.toISOString().split("T")[0];
-    buckets[key] = 0;
-  }
-
-  for (const row of rows) {
-    const key = new Date(row.created_at).toISOString().split("T")[0];
-    if (key in buckets) {
-      buckets[key]++;
-    }
-  }
-
-  return Object.entries(buckets).map(([date, count]) => ({
-    date: `${date.slice(5, 7)}/${date.slice(8, 10)}`,
-    count,
-  }));
-}
-
 export default function AnalyticsPage() {
   const { admin, loading } = useAuth();
   const router = useRouter();
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loadingData, setLoadingData] = useState(true);
   const [period, setPeriod] = useState(30);
+  const [error, setError] = useState("");
+  const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
     if (!loading && !admin) router.push("/login");
@@ -91,37 +69,54 @@ export default function AnalyticsPage() {
 
     async function fetchAnalytics() {
       try {
-        const since = new Date();
-        since.setDate(since.getDate() - period);
-        const sinceStr = since.toISOString();
-
-        const [signupsRes, projectsRes, extractionsRes, aiRes] = await Promise.all([
-          supabase.from("profiles").select("created_at").gte("created_at", sinceStr),
-          supabase.from("projects").select("created_at").gte("created_at", sinceStr),
-          supabase.from("extractions").select("created_at").gte("created_at", sinceStr),
-          supabase.from("ai_usage_log").select("created_at").gte("created_at", sinceStr).then(
-            (res) => (res.error?.code === "42P01" ? { data: [], error: null } : res)
-          ),
-        ]);
-
+        setError("");
+        const res = await adminFetch(`/api/admin/analytics?days=${period}`);
+        const payload = (await res.json()) as AnalyticsData & { error?: string };
+        if (!res.ok) throw new Error(payload.error || "Failed to load analytics.");
         setData({
-          signups: groupByDay(signupsRes.data || [], period),
-          projects: groupByDay(projectsRes.data || [], period),
-          extractions: groupByDay(extractionsRes.data || [], period),
-          aiCalls: groupByDay((aiRes as { data: { created_at: string }[] | null }).data || [], period),
+          signups: payload.signups || [],
+          projects: payload.projects || [],
+          extractions: payload.extractions || [],
+          aiCalls: payload.aiCalls || [],
         });
       } catch (err) {
         console.error("Failed to fetch analytics:", err);
+        setData(null);
+        setError(err instanceof Error ? err.message : "Failed to load analytics.");
       } finally {
         setLoadingData(false);
       }
     }
 
     fetchAnalytics();
-  }, [admin, period]);
+  }, [admin, period, reloadToken]);
 
   if (loading || !admin) return <TableSkeleton />;
-  if (loadingData || !data) return <TableSkeleton />;
+  if (loadingData) return <TableSkeleton />;
+  if (!data) {
+    return (
+      <div className="p-6 space-y-4">
+        <div className="flex items-center gap-3">
+          <BarChart3 className="w-6 h-6 text-primary" />
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Analytics</h1>
+        </div>
+        <div className="p-3 bg-red-400/20 border border-red-400/50 rounded-lg text-red-400 text-sm">
+          {error || "Failed to load analytics."}
+        </div>
+        <button
+          type="button"
+          className="text-sm text-primary underline"
+          onClick={() => {
+            setLoadingData(true);
+            setError("");
+            setReloadToken((n) => n + 1);
+          }}
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">

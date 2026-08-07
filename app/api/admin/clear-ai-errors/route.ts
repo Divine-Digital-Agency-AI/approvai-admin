@@ -3,6 +3,7 @@ import {
   createServiceClient,
   requireAdminRoleFromBearerToken,
 } from "@/app/api/admin/_lib/auth";
+import { authErrorStatus, jsonError } from "@/app/api/admin/_lib/http";
 
 export async function POST(req: Request) {
   try {
@@ -36,13 +37,6 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
-    const status =
-      message === "Unauthorized." ||
-      message === "Forbidden." ||
-      message === "Missing or invalid Authorization header." ||
-      message === "Missing access token."
-        ? 403
-        : 500;
-    return NextResponse.json({ error: message }, { status });
+    return jsonError(message, authErrorStatus(message));
   }
 }

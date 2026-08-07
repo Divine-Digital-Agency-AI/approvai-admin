@@ -1,6 +1,7 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { Sidebar } from "./Sidebar";
 import { SidebarProvider } from "./SidebarContext";
 import { Header } from "./Header";
@@ -14,8 +15,15 @@ const PUBLIC_ROUTES = ["/login", "/reset-password"];
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { admin, loading } = useAuth();
   const isPublicRoute = PUBLIC_ROUTES.includes(pathname || "");
+
+  useEffect(() => {
+    if (!isPublicRoute && !loading && !admin) {
+      router.replace("/login");
+    }
+  }, [admin, loading, isPublicRoute, router]);
 
   if (isPublicRoute) {
     return <>{children}</>;
@@ -26,7 +34,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   }
 
   if (!admin) {
-    return <>{children}</>;
+    return <AuthSkeleton />;
   }
 
   return (
