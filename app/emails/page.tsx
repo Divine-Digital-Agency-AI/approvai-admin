@@ -41,6 +41,7 @@ const KINDS = [
   "followup_d14",
   "followup_d21",
   "vendor_supplier",
+  "support_escalation",
   "subscription_active",
   "payment_failed",
 ] as const;
@@ -53,6 +54,7 @@ const KIND_LABEL: Record<string, string> = {
   followup_d14: "Follow-up (14d)",
   followup_d21: "Follow-up (21d)",
   vendor_supplier: "Vendor share",
+  support_escalation: "Support request",
   subscription_active: "Subscription",
   payment_failed: "Payment failed",
 };
