@@ -11,7 +11,6 @@ import { Mail, Search, RefreshCw } from "lucide-react";
 import {
   adminEmptyState,
   adminMuted,
-  adminPagePad,
   adminTableWrap,
 } from "@/lib/themed-surfaces";
 import { cn } from "@/lib/utils";
@@ -148,7 +147,7 @@ export default function EmailsPage() {
   if (loading || !admin) return <TableSkeleton />;
 
   return (
-    <div className={cn(adminPagePad, "space-y-6")}>
+    <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight text-[#1a1a1a] dark:text-white sm:text-2xl">
