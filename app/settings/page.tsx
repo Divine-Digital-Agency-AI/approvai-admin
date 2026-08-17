@@ -29,8 +29,11 @@ import { cn } from "@/lib/utils";
 interface SystemStatus {
   supabaseUrl: string;
   hasGeniusProKey: boolean;
-  geniusProModel: string;
-  geniusProDeepReviewModel: string;
+  extractModel: string;
+  formsModel: string;
+  qaModel: string;
+  judgeModel: string;
+  askAntModel: string;
   maxPages: number;
   totalTables: number;
   profilesCount: number;
@@ -107,8 +110,11 @@ export default function SettingsPage() {
         setStatus({
           supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL || "Not configured",
           hasGeniusProKey: false,
-          geniusProModel: "simon-says-architecture",
-          geniusProDeepReviewModel: "simon-says-architecture-pro",
+          extractModel: "gp-approvai-extract",
+          formsModel: "gp-approvai-forms",
+          qaModel: "gp-approvai-qa",
+          judgeModel: "gp-approvai-judge",
+          askAntModel: "gp-approvai-ask-ant",
           maxPages: 6,
           totalTables: 0,
           profilesCount: count ?? 0,
@@ -212,7 +218,7 @@ export default function SettingsPage() {
             </h2>
             <p className={adminMuted}>Read-only values from the API environment.</p>
           </div>
-          <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
             <ConfigTile
               icon={FileStack}
               label="Max pages"
@@ -221,16 +227,37 @@ export default function SettingsPage() {
             />
             <ConfigTile
               icon={Sparkles}
-              label="Standard model"
-              value={status?.geniusProModel ?? "…"}
-              envKey="GENIUSPRO_CAT_MODEL"
+              label="Extract"
+              value={status?.extractModel ?? "…"}
+              envKey="SWARM_EXTRACT_MODEL"
               mono
             />
             <ConfigTile
               icon={Sparkles}
-              label="Deep review model"
-              value={status?.geniusProDeepReviewModel ?? "…"}
-              envKey="GENIUSPRO_DEEP_REVIEW_MODEL"
+              label="Forms"
+              value={status?.formsModel ?? "…"}
+              envKey="SWARM_FORMS_MODEL"
+              mono
+            />
+            <ConfigTile
+              icon={Sparkles}
+              label="QA"
+              value={status?.qaModel ?? "…"}
+              envKey="SWARM_QA_MODEL"
+              mono
+            />
+            <ConfigTile
+              icon={Sparkles}
+              label="Judge"
+              value={status?.judgeModel ?? "…"}
+              envKey="SWARM_JUDGE_MODEL"
+              mono
+            />
+            <ConfigTile
+              icon={Sparkles}
+              label="Ask Ant"
+              value={status?.askAntModel ?? "…"}
+              envKey="ASK_ANT_MODEL"
               mono
             />
             <ConfigTile
