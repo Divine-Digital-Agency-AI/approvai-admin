@@ -5,45 +5,13 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useSidebar } from "./SidebarContext";
 import { useAuth } from "@/lib/auth-context";
-import {
-  LayoutDashboard,
-  Users,
-  MailPlus,
-  Mail,
-  FolderKanban,
-  Building2,
-  FileSearch,
-  Settings,
-  Cpu,
-  BarChart3,
-  ChevronLeft,
-  ChevronRight,
-  Shield,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { NAV_GROUPS, isNavActive } from "./nav";
 
 const SIDEBAR_COLLAPSED_WIDTH = "72px";
-const SIDEBAR_EXPANDED_WIDTH = "200px";
+const SIDEBAR_EXPANDED_WIDTH = "220px";
 const SIDEBAR_EXPANDED_KEY = "approvai-admin-sidebar-expanded";
-
-interface NavItem {
-  label: string;
-  href: string;
-  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
-}
-
-const navItems: NavItem[] = [
-  { label: "Dashboard", href: "/", icon: LayoutDashboard },
-  { label: "Users", href: "/users", icon: Users },
-  { label: "Projects", href: "/projects", icon: FolderKanban },
-  { label: "Blueprints", href: "/blueprints", icon: FileSearch },
-  { label: "AI Usage", href: "/extractions", icon: Cpu },
-  { label: "Analytics", href: "/analytics", icon: BarChart3 },
-  { label: "Municipalities", href: "/municipalities", icon: Building2 },
-  { label: "Early Access", href: "/early-access", icon: MailPlus },
-  { label: "Emails", href: "/emails", icon: Mail },
-  { label: "Settings", href: "/settings", icon: Settings },
-];
 
 function applySidebarWidth(expanded: boolean, mobile: boolean) {
   const width = mobile ? "0px" : expanded ? SIDEBAR_EXPANDED_WIDTH : SIDEBAR_COLLAPSED_WIDTH;
@@ -102,16 +70,11 @@ export function Sidebar() {
     }
   }, [isExpanded, isMobile]);
 
-  const isActive = (href: string) => {
-    if (href === "/") return pathname === "/";
-    return pathname?.startsWith(href);
-  };
-
   if (isMobile) return null;
 
   const navButtonClass = (active: boolean) =>
     cn(
-      "flex h-11 items-center rounded-[14px] transition-colors",
+      "flex h-10 items-center rounded-[14px] transition-colors",
       isExpanded ? "w-full gap-3 px-3" : "w-12 justify-center",
       active
         ? "border-l border-[#1f81df] bg-[#f7f7f7] text-[#1f81df] dark:bg-[#1a1a1a] dark:text-white"
@@ -122,7 +85,7 @@ export function Sidebar() {
     <aside
       className={cn(
         "fixed left-0 top-0 z-[70] flex h-screen flex-col bg-[#e5e5e5] transition-[width] duration-300 dark:bg-black",
-        isExpanded ? "w-[200px] px-4 py-6" : "w-[72px] items-center px-3 py-6"
+        isExpanded ? "w-[220px] px-4 py-6" : "w-[72px] items-center px-3 py-6"
       )}
     >
       <div
@@ -181,25 +144,50 @@ export function Sidebar() {
         )}
       />
 
-      <nav className={cn("flex flex-1 flex-col gap-0.5 overflow-y-auto", isExpanded ? "w-full" : "items-center")}>
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const active = isActive(item.href);
-          return (
-            <button
-              key={item.href}
-              type="button"
-              onClick={() => router.push(item.href)}
-              className={navButtonClass(active)}
-              title={!isExpanded ? item.label : undefined}
-              aria-label={item.label}
-              aria-current={active ? "page" : undefined}
-            >
-              <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.75} />
-              {isExpanded && <span className="truncate text-sm font-medium">{item.label}</span>}
-            </button>
-          );
-        })}
+      <nav
+        className={cn("flex flex-1 flex-col overflow-y-auto", isExpanded ? "w-full" : "items-center")}
+        aria-label="Admin"
+      >
+        {NAV_GROUPS.map((group, groupIndex) => (
+          <div
+            key={group.label}
+            className={cn(
+              "flex flex-col",
+              isExpanded ? "w-full" : "items-center",
+              groupIndex > 0 && "mt-3"
+            )}
+          >
+            {isExpanded ? (
+              <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#888]">
+                {group.label}
+              </p>
+            ) : (
+              groupIndex > 0 && (
+                <div className="mb-2 h-px w-8 bg-[#d4d4d4] dark:bg-[#333333]" aria-hidden />
+              )
+            )}
+            <div className={cn("flex flex-col gap-0.5", isExpanded ? "w-full" : "items-center")}>
+              {group.items.map((item) => {
+                const Icon = item.icon;
+                const active = isNavActive(pathname, item.href);
+                return (
+                  <button
+                    key={item.href}
+                    type="button"
+                    onClick={() => router.push(item.href)}
+                    className={navButtonClass(active)}
+                    title={!isExpanded ? `${group.label} · ${item.label}` : undefined}
+                    aria-label={item.label}
+                    aria-current={active ? "page" : undefined}
+                  >
+                    <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.75} />
+                    {isExpanded && <span className="truncate text-sm font-medium">{item.label}</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
       <div className={cn("mt-auto flex flex-col", isExpanded ? "w-full gap-2" : "items-center gap-3")}>

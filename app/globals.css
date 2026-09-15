@@ -151,3 +151,26 @@ input:disabled,
 textarea:disabled {
   cursor: not-allowed;
 }
+
+@media print {
+  .logic-toolbar,
+  .work-toolbar,
+  .print\:hidden {
+    display: none !important;
+  }
+
+  .logic-board,
+  .work-board {
+    background: #ffffff !important;
+    color: #1a1a1a !important;
+  }
+
+  .logic-board section,
+  .logic-board header,
+  .work-board section,
+  .work-board header,
+  .work-board article {
+    break-inside: avoid;
+    box-shadow: none !important;
+  }
+}

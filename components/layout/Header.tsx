@@ -12,37 +12,9 @@ import {
   X,
   LogOut,
   Shield,
-  LayoutDashboard,
-  Users,
-  MailPlus,
-  Mail,
-  FolderKanban,
-  Building2,
-  FileSearch,
-  Settings,
-  Cpu,
-  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-type NavItem = {
-  label: string;
-  href: string;
-  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
-};
-
-const navItems: NavItem[] = [
-  { label: "Dashboard", href: "/", icon: LayoutDashboard },
-  { label: "Users", href: "/users", icon: Users },
-  { label: "Projects", href: "/projects", icon: FolderKanban },
-  { label: "Blueprints", href: "/blueprints", icon: FileSearch },
-  { label: "AI Usage", href: "/extractions", icon: Cpu },
-  { label: "Analytics", href: "/analytics", icon: BarChart3 },
-  { label: "Municipalities", href: "/municipalities", icon: Building2 },
-  { label: "Early Access", href: "/early-access", icon: MailPlus },
-  { label: "Emails", href: "/emails", icon: Mail },
-  { label: "Settings", href: "/settings", icon: Settings },
-];
+import { NAV_GROUPS, isNavActive } from "./nav";
 
 interface HeaderProps {
   hideOnDesktop?: boolean;
@@ -161,33 +133,37 @@ export function Header({ hideOnDesktop = false }: HeaderProps) {
               </div>
             )}
 
-            <nav className="flex-1 overflow-y-auto px-2 py-3">
-              <ul className="space-y-0.5">
-                {navItems.map((item) => {
-                  const Icon = item.icon;
-                  const active =
-                    item.href === "/"
-                      ? pathname === "/"
-                      : (pathname || "").startsWith(item.href);
-                  return (
-                    <li key={item.href}>
-                      <button
-                        type="button"
-                        onClick={() => handleNavigate(item.href)}
-                        className={cn(
-                          "flex w-full items-center rounded-[14px] px-3 py-3 transition-colors",
-                          active
-                            ? "border-l border-[#1f81df] bg-white text-[#1f81df] dark:bg-[#1a1a1a] dark:text-white"
-                            : "text-[#666666] hover:bg-[#f0f0f0] dark:text-[#7f7f7f] dark:hover:bg-[#1a1a1a]"
-                        )}
-                      >
-                        <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.75} />
-                        <span className="ml-3 text-sm font-medium">{item.label}</span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
+            <nav className="flex-1 overflow-y-auto px-2 py-3" aria-label="Admin">
+              {NAV_GROUPS.map((group) => (
+                <div key={group.label} className="mb-3 last:mb-0">
+                  <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#888]">
+                    {group.label}
+                  </p>
+                  <ul className="space-y-0.5">
+                    {group.items.map((item) => {
+                      const Icon = item.icon;
+                      const active = isNavActive(pathname, item.href);
+                      return (
+                        <li key={item.href}>
+                          <button
+                            type="button"
+                            onClick={() => handleNavigate(item.href)}
+                            className={cn(
+                              "flex w-full items-center rounded-[14px] px-3 py-3 transition-colors",
+                              active
+                                ? "border-l border-[#1f81df] bg-white text-[#1f81df] dark:bg-[#1a1a1a] dark:text-white"
+                                : "text-[#666666] hover:bg-[#f0f0f0] dark:text-[#7f7f7f] dark:hover:bg-[#1a1a1a]"
+                            )}
+                          >
+                            <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.75} />
+                            <span className="ml-3 text-sm font-medium">{item.label}</span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              ))}
             </nav>
 
             <div className="shrink-0 border-t border-[#d4d4d4] p-2 dark:border-[#333333]">
