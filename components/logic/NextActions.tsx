@@ -28,7 +28,7 @@ export function NextActions({ openDecisions }: NextActionsProps) {
           </p>
         </div>
         <Link
-          href="/phase-3/now"
+          href="/delivery-status"
           className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover"
         >
           See current work
