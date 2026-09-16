@@ -48,11 +48,9 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-[#e5e5e5] pt-14 dark:bg-black md:pb-6 md:pr-6 md:pt-6">
           <div className={cn(adminShellOuter)}>
             <div className={cn(adminShellInner)}>
-              {!pathname?.startsWith("/phase-3") && (
-                <div className="hidden shrink-0 items-center justify-end px-5 pt-5 md:flex sm:px-8 sm:pt-6">
-                  <ThemeToggle />
-                </div>
-              )}
+              <div className="hidden shrink-0 items-center justify-end px-5 pt-5 md:flex sm:px-8 sm:pt-6">
+                <ThemeToggle />
+              </div>
               {children}
             </div>
           </div>

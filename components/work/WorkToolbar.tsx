@@ -5,6 +5,8 @@ import { useRef } from "react";
 import { FilterChip, ToolbarButton } from "./WorkToolbarBits";
 import { WorkNav } from "./WorkNav";
 import { formatSavedAt } from "@/lib/logic/format";
+import { boardChip, boardDivider, boardFaint, boardTitle, boardToolbar } from "@/lib/themed-surfaces";
+import { cn } from "@/lib/utils";
 import type { WorkKind, WorkOwner, WorkStatus } from "@/lib/work/types";
 
 export type WorkView = "now" | "all" | "proof";
@@ -65,11 +67,11 @@ export function WorkToolbar({
   const fileRef = useRef<HTMLInputElement>(null);
 
   return (
-    <div className="work-toolbar print:hidden sticky top-0 z-20 border-b border-[#e4e4e4] bg-white/95 px-4 py-3 backdrop-blur sm:px-6">
+    <div className={cn("work-toolbar px-4 py-3 sm:px-6", boardToolbar)}>
       <div className="mx-auto flex max-w-[960px] flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-semibold text-[#1a1a1a]">
+            <p className={cn("text-sm font-semibold", boardTitle)}>
               {present
                 ? "Delivery status"
                 : view === "proof"
@@ -78,7 +80,7 @@ export function WorkToolbar({
                     ? "All work"
                     : "Delivery status"}
             </p>
-            <p className="text-xs text-[#888]">
+            <p className={cn("text-xs", boardFaint)}>
               {formatSavedAt(savedAt, now)} · {progress}
             </p>
           </div>
@@ -100,7 +102,7 @@ export function WorkToolbar({
             <button
               type="button"
               onClick={() => onPresentChange(!present)}
-              className="rounded-full border border-[#e4e4e4] bg-white px-3.5 py-1.5 text-sm text-[#1a1a1a] hover:bg-[#f7f7f7]"
+              className={cn("px-3.5 py-1.5", boardChip)}
             >
               {present ? "Edit" : "Done"}
             </button>
@@ -143,7 +145,7 @@ export function WorkToolbar({
                   onClick={() => onFilterChange(id)}
                 />
               ))}
-              <span className="mx-1 h-4 w-px bg-[#e4e4e4]" />
+              <span className={cn("mx-1 h-4 w-px", boardDivider)} />
               {(["all", "us", "brian", "waiting"] as const).map((id) => (
                 <FilterChip
                   key={id}
@@ -153,7 +155,7 @@ export function WorkToolbar({
                   onClick={() => onOwnerFilterChange(id)}
                 />
               ))}
-              <span className="mx-1 h-4 w-px bg-[#e4e4e4]" />
+              <span className={cn("mx-1 h-4 w-px", boardDivider)} />
               {(["all", "decision", "build", "dependency", "acceptance", "guardrail"] as const).map((id) => (
                 <FilterChip
                   key={id}

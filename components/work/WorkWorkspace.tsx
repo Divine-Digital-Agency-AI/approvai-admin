@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Plus } from "lucide-react";
 import { DeliverySlices } from "./DeliverySlices";
@@ -9,6 +9,8 @@ import { WorkNow } from "./WorkNow";
 import { WorkTaskCard } from "./WorkTaskCard";
 import { WorkToolbar, type WorkView } from "./WorkToolbar";
 import { useWorkBoard } from "@/hooks/useWorkBoard";
+import { boardFaint, boardPage } from "@/lib/themed-surfaces";
+import { cn } from "@/lib/utils";
 import { WORK_GROUPS, workGroupId } from "@/lib/work/groups";
 import { nowCounts, PROOF_GROUP } from "@/lib/work/now";
 import type { WorkKind, WorkOwner, WorkStatus } from "@/lib/work/types";
@@ -31,17 +33,6 @@ export function WorkWorkspace() {
   const view = localView ?? urlView;
   const { board, ready, savedAt, now, update, updateTask, addTask, removeTask, reset, exportJson, importJson } =
     useWorkBoard();
-
-  useEffect(() => {
-    const root = document.documentElement;
-    const hadDark = root.classList.contains("dark");
-    root.classList.remove("dark");
-    root.classList.add("light");
-    return () => {
-      root.classList.remove("light");
-      if (hadDark) root.classList.add("dark");
-    };
-  }, []);
 
   const counts = useMemo(() => nowCounts(board.tasks), [board.tasks]);
   const statusCounts = useMemo(() => {
@@ -117,11 +108,11 @@ export function WorkWorkspace() {
   };
 
   if (!ready) {
-    return <div className="min-h-[50vh] bg-[#f7f7f7]" />;
+    return <div className={cn("min-h-[50vh]", boardPage)} />;
   }
 
   return (
-    <div className="work-board min-h-full bg-[#f7f7f7] text-[#1a1a1a]">
+    <div className={cn("work-board", boardPage)}>
       <WorkToolbar
         view={present ? "now" : view}
         present={present}
@@ -179,7 +170,7 @@ export function WorkWorkspace() {
               <div className="mb-3 flex items-center justify-between gap-3">
                 <h2 className="text-sm font-semibold uppercase tracking-[0.06em] text-primary">
                   {group.name}
-                  <span className="ml-2 font-medium normal-case tracking-normal text-[#888]">
+                  <span className={cn("ml-2 font-medium normal-case tracking-normal", boardFaint)}>
                     {group.tasks.length}
                   </span>
                 </h2>

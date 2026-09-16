@@ -1,6 +1,14 @@
 "use client";
 
 import { EditableField } from "./EditableField";
+import {
+  boardCard,
+  boardIdleChip,
+  boardInfoChip,
+  boardSoft,
+  boardTitle,
+  boardYesChip,
+} from "@/lib/themed-surfaces";
 import { cn } from "@/lib/utils";
 import type { BoardStatus } from "@/lib/logic/types";
 
@@ -42,14 +50,14 @@ export function SummarySection({
   return (
     <header
       id="summary"
-      className="scroll-mt-24 rounded-2xl border border-[#e4e4e4] bg-white px-6 py-6 sm:px-8"
+      className={cn("scroll-mt-24 px-6 py-6 sm:px-8", boardCard)}
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs font-semibold uppercase tracking-[0.08em] text-primary">
           Plan &amp; approvals
         </p>
         {present ? (
-          <span className="rounded-full bg-[#edf5fc] px-2.5 py-0.5 text-xs font-medium text-primary">
+          <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-medium", boardInfoChip)}>
             {STATUSES.find((status) => status.id === boardStatus)?.label}
           </span>
         ) : (
@@ -63,11 +71,11 @@ export function SummarySection({
                   "rounded-full px-2.5 py-0.5 text-xs font-medium",
                   boardStatus === status.id
                     ? status.id === "locked"
-                      ? "bg-[#1a1a1a] text-white"
+                      ? "bg-[#1a1a1a] text-white dark:bg-white dark:text-[#1a1a1a]"
                       : status.id === "ready"
-                        ? "bg-[#e8f6ee] text-[#1b7a3d]"
-                        : "bg-[#edf5fc] text-primary"
-                    : "bg-[#f7f7f7] text-[#888]"
+                        ? boardYesChip
+                        : boardInfoChip
+                    : boardIdleChip
                 )}
               >
                 {status.label}
@@ -81,7 +89,7 @@ export function SummarySection({
         onChange={onTitleChange}
         present={readOnly}
         rows={2}
-        className="mt-3 text-2xl font-semibold leading-8 text-[#1a1a1a]"
+        className={cn("mt-3 text-2xl font-semibold leading-8", boardTitle)}
       />
       <EditableField
         value={subtitle}
@@ -92,14 +100,14 @@ export function SummarySection({
         className="mt-2 text-[15px] leading-6"
       />
       {showNotes && (
-        <div className="mt-5 rounded-xl bg-[#edf5fc] p-4">
+        <div className={cn("mt-5 rounded-xl p-4", boardSoft)}>
           <p className="text-xs font-semibold uppercase tracking-[0.06em] text-primary">Notes</p>
           <EditableField
             value={summary}
             onChange={onSummaryChange}
             present={readOnly}
             rows={3}
-            className="mt-2 text-[15px] leading-6 text-[#1a1a1a]"
+            className={cn("mt-2 text-[15px] leading-6", boardTitle)}
           />
         </div>
       )}

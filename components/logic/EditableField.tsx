@@ -33,7 +33,7 @@ export function EditableField({
 
   if (present) {
     return (
-      <p className={cn("whitespace-pre-wrap", muted && "text-[#5c5c5c]", className)}>
+      <p className={cn("whitespace-pre-wrap", muted && "text-[#5c5c5c] dark:text-[#a3a3a3]", className)}>
         {value.trim() || "—"}
       </p>
     );
@@ -47,8 +47,8 @@ export function EditableField({
       placeholder={placeholder}
       onChange={(event) => onChange(event.target.value)}
       className={cn(
-        "w-full resize-none overflow-hidden bg-transparent outline-none placeholder:text-[#b3b3b3]",
-        muted && "text-[#5c5c5c]",
+        "w-full resize-none overflow-hidden bg-transparent outline-none placeholder:text-[#b3b3b3] dark:placeholder:text-[#666]",
+        muted && "text-[#5c5c5c] dark:text-[#a3a3a3]",
         className
       )}
     />

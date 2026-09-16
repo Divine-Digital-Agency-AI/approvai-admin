@@ -1,6 +1,8 @@
 "use client";
 
 import { WorkTaskCard } from "./WorkTaskCard";
+import { boardCard, boardFaint, boardHairline } from "@/lib/themed-surfaces";
+import { cn } from "@/lib/utils";
 import { NEXT_LIMIT, NOW_LANES, nowCounts, nowLanes } from "@/lib/work/now";
 import type { WorkTask } from "@/lib/work/types";
 
@@ -25,12 +27,12 @@ export function WorkNow({ tasks, present, onChange, onSeeAll }: WorkNowProps) {
             <div className="mb-3">
               <h2 className="text-sm font-semibold uppercase tracking-[0.06em] text-primary">
                 {lane.name}
-                <span className="ml-2 font-medium normal-case tracking-normal text-[#888]">{items.length}</span>
+                <span className={cn("ml-2 font-medium normal-case tracking-normal", boardFaint)}>{items.length}</span>
               </h2>
-              <p className="mt-1 text-sm text-[#888]">{lane.hint}</p>
+              <p className={cn("mt-1 text-sm", boardFaint)}>{lane.hint}</p>
             </div>
             {items.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-[#e4e4e4] bg-white px-4 py-5 text-sm text-[#888]">
+              <p className={cn("rounded-xl border border-dashed px-4 py-5 text-sm", boardCard, boardHairline, boardFaint)}>
                 Nothing here.
               </p>
             ) : (

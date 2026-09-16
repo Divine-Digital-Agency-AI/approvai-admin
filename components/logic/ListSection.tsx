@@ -2,6 +2,8 @@
 
 import { Plus, X } from "lucide-react";
 import { EditableField } from "./EditableField";
+import { boardCard, boardFaint, boardIconBtn, boardTitle } from "@/lib/themed-surfaces";
+import { cn } from "@/lib/utils";
 
 interface ListSectionProps {
   id?: string;
@@ -37,7 +39,7 @@ export function ListSection({
   return (
     <section
       id={id}
-      className="scroll-mt-24 rounded-2xl border border-[#e4e4e4] bg-white p-6 sm:p-8"
+      className={cn("scroll-mt-24 p-6 sm:p-8", boardCard)}
     >
       <EditableField
         value={eyebrow}
@@ -51,24 +53,24 @@ export function ListSection({
         onChange={onTitleChange}
         present={present || headersLocked}
         rows={1}
-        className="mt-1 text-xl font-semibold text-[#1a1a1a]"
+        className={cn("mt-1 text-xl font-semibold", boardTitle)}
       />
       <ol className="mt-5 space-y-3">
         {items.map((item, index) => (
           <li key={index} className="flex items-start gap-2">
-            <span className="mt-2 w-5 shrink-0 text-sm font-medium text-[#999]">{index + 1}.</span>
+            <span className={cn("mt-2 w-5 shrink-0 text-sm font-medium", boardFaint)}>{index + 1}.</span>
             <EditableField
               value={item}
               onChange={(value) => onItemChange(index, value)}
               present={present}
               rows={2}
-              className="text-[15px] leading-6 text-[#1a1a1a]"
+              className={cn("text-[15px] leading-6", boardTitle)}
             />
             {!present && items.length > 1 && (
               <button
                 type="button"
                 onClick={() => onRemoveItem(index)}
-                className="mt-1 rounded p-1 text-[#999] hover:bg-black/5 hover:text-[#1a1a1a]"
+                className={cn("mt-1", boardIconBtn)}
                 aria-label="Remove item"
               >
                 <X className="h-3.5 w-3.5" />
@@ -88,7 +90,7 @@ export function ListSection({
         </button>
       )}
       {footer !== undefined && onFooterChange && (
-        <div className="mt-6 border-t border-[#eee] pt-4">
+        <div className="mt-6 border-t border-[#eee] pt-4 dark:border-[#2a2a2a]">
           <EditableField
             value={footer}
             onChange={onFooterChange}

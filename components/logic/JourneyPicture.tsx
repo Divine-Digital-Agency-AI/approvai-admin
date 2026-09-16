@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { JourneyLoops } from "./JourneyLoops";
+import { boardCard, boardFaint, boardGridEmpty, boardGridFrame, boardMuted, boardTitle } from "@/lib/themed-surfaces";
 import { cn } from "@/lib/utils";
 import { useWorkStageProgress } from "@/hooks/useWorkStageProgress";
 import { PICTURE_LANES, scrollToJourneyStage, shortPictureLine } from "@/lib/logic/picture";
@@ -26,24 +27,24 @@ export function JourneyPicture({ stages }: JourneyPictureProps) {
   return (
     <section
       id="picture"
-      className="scroll-mt-24 rounded-2xl border border-[#e4e4e4] bg-white p-6 sm:p-8"
+      className={cn("scroll-mt-24 p-6 sm:p-8", boardCard)}
     >
       <p className="text-xs font-semibold uppercase tracking-[0.08em] text-primary">
         Journey
       </p>
-      <h2 className="mt-1 text-xl font-semibold text-[#1a1a1a]">
+      <h2 className={cn("mt-1 text-xl font-semibold", boardTitle)}>
         How a contractor gets from login to a packet
       </h2>
-      <p className="mt-1 text-sm leading-6 text-[#5c5c5c]">
+      <p className={cn("mt-1 text-sm leading-6", boardMuted)}>
         Left to right. What they do, what ApprovAI does, and who else is involved.
       </p>
 
       <div className="mt-5 overflow-x-auto">
         <div
-          className="grid min-w-[980px] gap-px rounded-xl border border-[#e4e4e4] bg-[#e4e4e4]"
+          className={cn("grid min-w-[980px]", boardGridFrame)}
           style={{ gridTemplateColumns: `84px repeat(${stages.length}, minmax(118px, 1fr))` }}
         >
-          <div className="bg-[#f7f7f7]" />
+          <div className={boardGridEmpty} />
           {stages.map((stage, index) => {
             const progress = workProgress[stage.id];
             return (
@@ -110,8 +111,8 @@ function LaneRow({
   return (
     <>
       <div className={cn("flex flex-col justify-center px-3 py-3", lane.tone)}>
-        <p className="text-xs font-semibold text-[#1a1a1a]">{lane.label}</p>
-        <p className="text-[10px] text-[#888]">{lane.hint}</p>
+        <p className={cn("text-xs font-semibold", boardTitle)}>{lane.label}</p>
+        <p className={cn("text-[10px]", boardFaint)}>{lane.hint}</p>
       </div>
       {stages.map((stage) => {
         const text = shortPictureLine(stage[lane.key]);
@@ -128,9 +129,9 @@ function LaneRow({
             )}
           >
             {quiet ? (
-              <span className="text-xs text-[#c8c8c8]">—</span>
+              <span className="text-xs text-[#c8c8c8] dark:text-[#555]">—</span>
             ) : (
-              <span className="line-clamp-4 text-[12px] leading-[1.35] text-[#1a1a1a]">{text || "—"}</span>
+              <span className={cn("line-clamp-4 text-[12px] leading-[1.35]", boardTitle)}>{text || "—"}</span>
             )}
           </button>
         );

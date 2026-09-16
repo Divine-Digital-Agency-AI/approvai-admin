@@ -1,6 +1,8 @@
 "use client";
 
 import { EditableField } from "@/components/logic/EditableField";
+import { boardFaint, boardMuted } from "@/lib/themed-surfaces";
+import { cn } from "@/lib/utils";
 import type { WorkKind, WorkMilestone, WorkPriority, WorkTask } from "@/lib/work/types";
 
 const KIND_LABELS: Record<WorkKind, string> = {
@@ -26,7 +28,7 @@ interface WorkTaskDetailsProps {
 
 export function WorkTaskDetails({ task, present, onChange }: WorkTaskDetailsProps) {
   return (
-    <details className="mt-3 border-t border-[#ededed] pt-3" open={present && task.kind === "acceptance"}>
+    <details className="mt-3 border-t border-[#ededed] pt-3 dark:border-[#2a2a2a]" open={present && task.kind === "acceptance"}>
       <summary className="cursor-pointer text-xs font-medium text-primary">
         Details
       </summary>
@@ -111,7 +113,7 @@ function MetaField({
 }) {
   return (
     <label className="mt-3 block">
-      <span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#888]">{label}</span>
+      <span className={cn("text-[11px] font-semibold uppercase tracking-[0.05em]", boardFaint)}>{label}</span>
       <EditableField
         value={value}
         onChange={onChange}
@@ -140,14 +142,14 @@ function MetaSelect({
 }) {
   return (
     <label>
-      <span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#888]">{label}</span>
+      <span className={cn("text-[11px] font-semibold uppercase tracking-[0.05em]", boardFaint)}>{label}</span>
       {present ? (
-        <p className="mt-1 text-sm text-[#5c5c5c]">{options[value]}</p>
+        <p className={cn("mt-1 text-sm", boardMuted)}>{options[value]}</p>
       ) : (
         <select
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="mt-1 w-full rounded-lg border border-[#e4e4e4] bg-white px-2 py-1.5 text-sm"
+          className="mt-1 w-full rounded-lg border border-[#e4e4e4] bg-white px-2 py-1.5 text-sm dark:border-[#333333] dark:bg-[#0d0d0d] dark:text-white"
         >
           {Object.entries(options).map(([id, optionLabel]) => (
             <option key={id} value={id}>

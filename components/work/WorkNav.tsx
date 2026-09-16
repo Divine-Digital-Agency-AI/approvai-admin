@@ -1,5 +1,6 @@
 "use client";
 
+import { boardFaint, boardNavChip, boardNavChipPresent } from "@/lib/themed-surfaces";
 import { cn } from "@/lib/utils";
 import { scrollToWorkGroup, WORK_GROUPS } from "@/lib/work/groups";
 
@@ -23,14 +24,12 @@ export function WorkNav({ present = false, counts }: WorkNavProps) {
             onClick={() => scrollToWorkGroup(group.id)}
             className={cn(
               "rounded-full px-3 py-1.5 text-sm",
-              present
-                ? "bg-white text-[#1a1a1a] shadow-sm hover:bg-[#edf5fc]"
-                : "border border-[#e4e4e4] bg-white text-[#1a1a1a] hover:bg-[#f7f7f7]"
+              present ? boardNavChipPresent : boardNavChip
             )}
           >
             {group.name}
             {count ? (
-              <span className="ml-1.5 text-[#888]">
+              <span className={cn("ml-1.5", boardFaint)}>
                 {count.done}/{count.total}
               </span>
             ) : null}

@@ -2,6 +2,16 @@
 
 import { Plus, X } from "lucide-react";
 import { EditableField } from "./EditableField";
+import {
+  boardCard,
+  boardFaint,
+  boardIconBtn,
+  boardIdleChip,
+  boardInfoChip,
+  boardNoChip,
+  boardTitle,
+  boardYesChip,
+} from "@/lib/themed-surfaces";
 import { cn } from "@/lib/utils";
 import type { DecisionItem, DecisionStatus } from "@/lib/logic/types";
 
@@ -49,7 +59,7 @@ export function DecisionSection({
   return (
     <section
       id="decisions"
-      className="scroll-mt-24 rounded-2xl border border-[#e4e4e4] bg-white p-6 sm:p-8"
+      className={cn("scroll-mt-24 p-6 sm:p-8", boardCard)}
     >
       <EditableField
         value={eyebrow}
@@ -63,7 +73,7 @@ export function DecisionSection({
         onChange={onTitleChange}
         present={present}
         rows={1}
-        className="mt-1 text-xl font-semibold text-[#1a1a1a]"
+        className={cn("mt-1 text-xl font-semibold", boardTitle)}
       />
       {hint !== undefined && onHintChange && (
         <EditableField
@@ -77,15 +87,15 @@ export function DecisionSection({
       )}
       <ol className="mt-6 space-y-5">
         {items.map((item, index) => (
-          <li key={item.id} className="flex items-start gap-3 border-b border-[#f0f0f0] pb-5 last:border-b-0 last:pb-0">
-            <span className="mt-1 w-5 shrink-0 text-sm font-medium text-[#999]">{index + 1}.</span>
+          <li key={item.id} className="flex items-start gap-3 border-b border-[#f0f0f0] pb-5 last:border-b-0 last:pb-0 dark:border-[#2a2a2a]">
+            <span className={cn("mt-1 w-5 shrink-0 text-sm font-medium", boardFaint)}>{index + 1}.</span>
             <div className="min-w-0 flex-1">
               <EditableField
                 value={item.text}
                 onChange={(value) => onItemChange(index, value)}
                 present={present}
                 rows={2}
-                className="text-[15px] font-medium leading-6 text-[#1a1a1a]"
+                className={cn("text-[15px] font-medium leading-6", boardTitle)}
               />
               {(item.note || !present) && onNoteChange && (
                 <EditableField
@@ -107,11 +117,11 @@ export function DecisionSection({
                       "rounded-full px-2.5 py-0.5 text-xs font-medium",
                       item.status === status.id
                         ? status.id === "yes"
-                          ? "bg-[#e8f6ee] text-[#1b7a3d]"
+                          ? boardYesChip
                           : status.id === "no"
-                            ? "bg-[#fdecec] text-[#b42318]"
-                            : "bg-[#edf5fc] text-primary"
-                        : "bg-[#f7f7f7] text-[#888]"
+                            ? boardNoChip
+                            : boardInfoChip
+                        : boardIdleChip
                     )}
                   >
                     {status.label}
@@ -123,7 +133,7 @@ export function DecisionSection({
               <button
                 type="button"
                 onClick={() => onRemoveItem(index)}
-                className="mt-1 rounded p-1 text-[#999] hover:bg-black/5 hover:text-[#1a1a1a]"
+                className={cn("mt-1", boardIconBtn)}
                 aria-label="Remove item"
               >
                 <X className="h-3.5 w-3.5" />
@@ -143,7 +153,7 @@ export function DecisionSection({
         </button>
       )}
       {footer !== undefined && onFooterChange && (
-        <div className="mt-6 border-t border-[#eee] pt-4">
+        <div className="mt-6 border-t border-[#eee] pt-4 dark:border-[#2a2a2a]">
           <EditableField
             value={footer}
             onChange={onFooterChange}

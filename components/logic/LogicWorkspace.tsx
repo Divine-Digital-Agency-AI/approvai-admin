@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { DecisionSection } from "./DecisionSection";
 import { JourneyPicture } from "./JourneyPicture";
 import { ListSection } from "./ListSection";
@@ -10,6 +10,7 @@ import { NextActions } from "./NextActions";
 import { SummarySection } from "./SummarySection";
 import { newId } from "@/lib/logic/ids";
 import { useLogicBoard } from "@/hooks/useLogicBoard";
+import { boardPage } from "@/lib/themed-surfaces";
 import { cn } from "@/lib/utils";
 
 export function LogicWorkspace() {
@@ -33,20 +34,8 @@ export function LogicWorkspace() {
     copyStage,
   } = useLogicBoard();
 
-  useEffect(() => {
-    const root = document.documentElement;
-    const hadDark = root.classList.contains("dark");
-    root.classList.remove("dark");
-    root.classList.add("light");
-    return () => {
-      root.classList.remove("light");
-      if (hadDark) root.classList.add("dark");
-    };
-  }, []);
-
-
   if (!ready) {
-    return <div className="min-h-[50vh] bg-[#f7f7f7]" />;
+    return <div className={cn("min-h-[50vh]", boardPage)} />;
   }
 
   const locked = board.boardStatus === "locked";
@@ -56,7 +45,7 @@ export function LogicWorkspace() {
   const yesCount = board.decisions.filter((item) => item.status === "yes").length;
 
   return (
-    <div className={cn("logic-board min-h-full bg-[#f7f7f7] text-[#1a1a1a]", present && "logic-present")}>
+    <div className={cn("logic-board", boardPage, present && "logic-present")}>
       <LogicToolbar
         present={present}
         full={showFull}

@@ -1,6 +1,8 @@
 "use client";
 
 import { Download } from "lucide-react";
+import { boardChip, boardIdleChip } from "@/lib/themed-surfaces";
+import { cn } from "@/lib/utils";
 
 export function FilterChip({
   label,
@@ -20,11 +22,11 @@ export function FilterChip({
       className={
         active
           ? "rounded-full bg-primary px-3 py-1 text-xs font-medium text-white"
-          : "rounded-full bg-[#f7f7f7] px-3 py-1 text-xs font-medium text-[#666]"
+          : cn("rounded-full px-3 py-1 text-xs font-medium", boardIdleChip)
       }
     >
       {label}
-      <span className={active ? "ml-1 text-white/80" : "ml-1 text-[#999]"}>{count}</span>
+      <span className={active ? "ml-1 text-white/80" : "ml-1 text-[#999] dark:text-[#7f7f7f]"}>{count}</span>
     </button>
   );
 }
@@ -42,7 +44,7 @@ export function ToolbarButton({
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex items-center gap-1.5 rounded-full border border-[#e4e4e4] bg-white px-3 py-1.5 text-sm text-[#1a1a1a] hover:bg-[#f7f7f7]"
+      className={cn("inline-flex items-center gap-1.5 px-3 py-1.5", boardChip)}
     >
       <Icon className="h-3.5 w-3.5" />
       {label}

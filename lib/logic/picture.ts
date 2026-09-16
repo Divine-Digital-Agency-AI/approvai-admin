@@ -1,9 +1,9 @@
 import type { JourneyStage } from "./types";
 
 export const PICTURE_LANES = [
-  { key: "customer" as const, label: "Contractor", hint: "what they do", tone: "bg-white" },
-  { key: "system" as const, label: "ApprovAI", hint: "what we do", tone: "bg-[#edf5fc]" },
-  { key: "external" as const, label: "Someone else", hint: "who else is involved", tone: "bg-[#fff4ec]" },
+  { key: "customer" as const, label: "Contractor", hint: "what they do", tone: "bg-white dark:bg-[#1a1a1a]" },
+  { key: "system" as const, label: "ApprovAI", hint: "what we do", tone: "bg-[#edf5fc] dark:bg-[#152433]" },
+  { key: "external" as const, label: "Someone else", hint: "who else is involved", tone: "bg-[#fff4ec] dark:bg-[#2a1f18]" },
 ];
 
 export const JOURNEY_LOOPS = [

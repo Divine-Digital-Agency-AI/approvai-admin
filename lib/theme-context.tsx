@@ -13,8 +13,13 @@ interface ThemeContextType {
 
 const ThemeContext = React.createContext<ThemeContextType | undefined>(undefined);
 
+function readDocumentTheme(): Theme {
+  if (typeof document === "undefined") return "light";
+  return document.documentElement.classList.contains("dark") ? "dark" : "light";
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = React.useState<Theme>("light");
+  const [theme, setThemeState] = React.useState<Theme>(readDocumentTheme);
   const [mounted, setMounted] = React.useState(false);
 
   React.useEffect(() => {

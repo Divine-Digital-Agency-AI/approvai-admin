@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { CheckCircle2 } from "lucide-react";
 import { workGroupId } from "@/lib/work/groups";
+import { boardCard, boardHairline, boardHoverSoft, boardInfoChip, boardMuted, boardTitle } from "@/lib/themed-surfaces";
+import { cn } from "@/lib/utils";
 import type { WorkTask } from "@/lib/work/types";
 
 const STEPS = [
@@ -16,10 +18,10 @@ const STEPS = [
 
 export function DeliverySlices({ tasks, present }: { tasks: WorkTask[]; present: boolean }) {
   return (
-    <section className="rounded-2xl border border-[#e4e4e4] bg-white p-6">
+    <section className={cn("p-6", boardCard)}>
       <p className="text-xs font-semibold uppercase tracking-[0.08em] text-primary">Current work</p>
-      <h2 className="mt-1 text-xl font-semibold text-[#1a1a1a]">What we are building</h2>
-      <p className="mt-1 text-sm leading-6 text-[#5c5c5c]">
+      <h2 className={cn("mt-1 text-xl font-semibold", boardTitle)}>What we are building</h2>
+      <p className={cn("mt-1 text-sm leading-6", boardMuted)}>
         Each step will result in something you can review directly in the product.
       </p>
       <ol className="mt-5 grid gap-3 md:grid-cols-2">
@@ -31,14 +33,18 @@ export function DeliverySlices({ tasks, present }: { tasks: WorkTask[]; present:
             <li key={step.name}>
               <Link
                 href={`/phase-3/now?view=all#work-${workGroupId(step.name)}`}
-                className="flex h-full gap-3 rounded-xl border border-[#e4e4e4] p-4 hover:border-primary/40 hover:bg-[#edf5fc]"
+                className={cn(
+                  "flex h-full gap-3 rounded-xl border p-4 hover:border-primary/40",
+                  boardHairline,
+                  boardHoverSoft
+                )}
               >
-                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#edf5fc] text-xs font-semibold text-primary">
+                <span className={cn("mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold", boardInfoChip)}>
                   {complete ? <CheckCircle2 className="h-4 w-4" /> : index + 1}
                 </span>
                 <span className="min-w-0">
-                  <span className="block text-sm font-semibold text-[#1a1a1a]">{step.title}</span>
-                  <span className="mt-1 block text-xs leading-5 text-[#5c5c5c]">{step.proof}</span>
+                  <span className={cn("block text-sm font-semibold", boardTitle)}>{step.title}</span>
+                  <span className={cn("mt-1 block text-xs leading-5", boardMuted)}>{step.proof}</span>
                   {!present && items.length > 0 && (
                     <span className="mt-2 block text-xs font-medium text-primary">
                       {done}/{items.length} done

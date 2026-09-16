@@ -2,6 +2,7 @@
 
 import { Plus, X } from "lucide-react";
 import { EditableField } from "./EditableField";
+import { boardCard, boardIconBtn, boardMuted, boardSoft, boardTitle } from "@/lib/themed-surfaces";
 import { cn } from "@/lib/utils";
 import type { CompareColumn } from "@/lib/logic/types";
 
@@ -33,7 +34,7 @@ export function CompareSection({
   return (
     <section
       id="overview"
-      className="scroll-mt-24 rounded-2xl border border-[#e4e4e4] bg-white p-6 sm:p-8"
+      className={cn("scroll-mt-24 p-6 sm:p-8", boardCard)}
     >
       <EditableField
         value={eyebrow}
@@ -47,7 +48,7 @@ export function CompareSection({
         onChange={onTitleChange}
         present={present}
         rows={1}
-        className="mt-1 text-xl font-semibold text-[#1a1a1a]"
+        className={cn("mt-1 text-xl font-semibold", boardTitle)}
       />
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         {columns.map((column) => (
@@ -55,7 +56,7 @@ export function CompareSection({
             key={column.id}
             className={cn(
               "rounded-xl p-5",
-              column.proposed ? "bg-[#edf5fc]" : "bg-[#f7f7f7]"
+              column.proposed ? boardSoft : "bg-[#f7f7f7] dark:bg-[#141414]"
             )}
           >
             <EditableField
@@ -65,7 +66,7 @@ export function CompareSection({
               rows={1}
               className={cn(
                 "text-xs font-semibold uppercase tracking-[0.06em]",
-                column.proposed ? "text-primary" : "text-[#5c5c5c]"
+                column.proposed ? "text-primary" : boardMuted
               )}
             />
             <ul className="mt-4 space-y-3">
@@ -76,13 +77,13 @@ export function CompareSection({
                     onChange={(value) => onItemChange(column.id, index, value)}
                     present={present}
                     rows={2}
-                    className="text-[15px] leading-6 text-[#1a1a1a]"
+                    className={cn("text-[15px] leading-6", boardTitle)}
                   />
                   {!present && column.items.length > 1 && (
                     <button
                       type="button"
                       onClick={() => onRemoveItem(column.id, index)}
-                      className="mt-1 rounded p-1 text-[#999] hover:bg-black/5 hover:text-[#1a1a1a]"
+                      className={cn("mt-1", boardIconBtn)}
                       aria-label="Remove line"
                     >
                       <X className="h-3.5 w-3.5" />

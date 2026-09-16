@@ -3,12 +3,25 @@
 import { ChevronLeft, ChevronRight, Copy, Plus, X } from "lucide-react";
 import { useRef } from "react";
 import { EditableField } from "./EditableField";
+import {
+  boardCard,
+  boardChip,
+  boardGridEmpty,
+  boardGridFrame,
+  boardInfoChip,
+  boardLaneContractor,
+  boardLaneExternal,
+  boardLaneSystem,
+  boardMuted,
+  boardTitle,
+} from "@/lib/themed-surfaces";
+import { cn } from "@/lib/utils";
 import type { JourneyStage } from "@/lib/logic/types";
 
 const LANES = [
-  { key: "customer" as const, label: "Contractor", hint: "action", tone: "bg-white" },
-  { key: "system" as const, label: "System", hint: "action", tone: "bg-[#edf5fc]" },
-  { key: "external" as const, label: "External", hint: "owner", tone: "bg-[#fff4ec]" },
+  { key: "customer" as const, label: "Contractor", hint: "action", tone: boardLaneContractor },
+  { key: "system" as const, label: "System", hint: "action", tone: boardLaneSystem },
+  { key: "external" as const, label: "External", hint: "owner", tone: boardLaneExternal },
 ];
 
 interface JourneyGridProps {
@@ -60,7 +73,7 @@ export function JourneyGrid({
   return (
     <section
       id="journey"
-      className="scroll-mt-24 rounded-2xl border border-[#e4e4e4] bg-white p-6 sm:p-8"
+      className={cn("scroll-mt-24 p-6 sm:p-8", boardCard)}
     >
       <EditableField
         value={eyebrow}
@@ -74,7 +87,7 @@ export function JourneyGrid({
         onChange={onTitleChange}
         present={present}
         rows={1}
-        className="mt-1 text-xl font-semibold text-[#1a1a1a]"
+        className={cn("mt-1 text-xl font-semibold", boardTitle)}
       />
       <EditableField
         value={hint}
@@ -89,7 +102,7 @@ export function JourneyGrid({
         <button
           type="button"
           onClick={() => scrollByPage(-1)}
-          className="print:hidden rounded-full border border-[#e4e4e4] p-1.5 text-[#1a1a1a] hover:bg-[#f7f7f7]"
+          className={cn("print:hidden p-1.5", boardChip)}
           aria-label="Scroll stages left"
         >
           <ChevronLeft className="h-4 w-4" />
@@ -99,7 +112,7 @@ export function JourneyGrid({
             key={stage.id}
             type="button"
             onClick={() => scrollToStage(stage.id)}
-            className="rounded-full bg-[#edf5fc] px-3 py-1 text-xs font-medium text-primary hover:bg-[#d8ebfa]"
+            className={cn("rounded-full px-3 py-1 text-xs font-medium hover:bg-[#d8ebfa] dark:hover:bg-[#1d3348]", boardInfoChip)}
           >
             {stage.title || "Stage"}
           </button>
@@ -107,7 +120,7 @@ export function JourneyGrid({
         <button
           type="button"
           onClick={() => scrollByPage(1)}
-          className="print:hidden rounded-full border border-[#e4e4e4] p-1.5 text-[#1a1a1a] hover:bg-[#f7f7f7]"
+          className={cn("print:hidden p-1.5", boardChip)}
           aria-label="Scroll stages right"
         >
           <ChevronRight className="h-4 w-4" />
@@ -116,10 +129,10 @@ export function JourneyGrid({
 
       <div ref={scrollerRef} className="mt-4 overflow-x-auto">
         <div
-          className="grid min-w-[1100px] gap-px rounded-xl border border-[#e4e4e4] bg-[#e4e4e4]"
+          className={cn("grid min-w-[1100px]", boardGridFrame)}
           style={{ gridTemplateColumns: `140px repeat(${stages.length}, minmax(170px, 1fr))` }}
         >
-          <div className="bg-[#f7f7f7] p-3" />
+          <div className={cn("p-3", boardGridEmpty)} />
           {stages.map((stage, index) => (
             <div key={stage.id} data-stage={stage.id} className="relative bg-primary px-3 py-3">
               <EditableField
@@ -206,8 +219,8 @@ function LaneRow({
   return (
     <>
       <div className={`${lane.tone} flex flex-col justify-center px-4 py-5`}>
-        <p className="text-sm font-semibold text-[#1a1a1a]">{lane.label}</p>
-        <p className="text-xs text-[#5c5c5c]">{lane.hint}</p>
+        <p className={cn("text-sm font-semibold", boardTitle)}>{lane.label}</p>
+        <p className={cn("text-xs", boardMuted)}>{lane.hint}</p>
       </div>
       {stages.map((stage) => (
         <div key={`${stage.id}-${lane.key}`} className={`${lane.tone} min-h-[140px] p-3`}>
@@ -216,7 +229,7 @@ function LaneRow({
             onChange={(value) => onCellChange(stage.id, lane.key, value)}
             present={present}
             rows={5}
-            className="text-[13px] leading-5 text-[#1a1a1a]"
+            className={cn("text-[13px] leading-5", boardTitle)}
           />
         </div>
       ))}

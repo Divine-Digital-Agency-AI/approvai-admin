@@ -3,6 +3,8 @@
 import { Download, Printer, Redo2, Undo2 } from "lucide-react";
 import { LogicNav } from "./LogicNav";
 import { formatSavedAt } from "@/lib/logic/format";
+import { boardChip, boardFaint, boardMuted, boardTitle, boardToolbar } from "@/lib/themed-surfaces";
+import { cn } from "@/lib/utils";
 
 interface LogicToolbarProps {
   present: boolean;
@@ -37,13 +39,13 @@ export function LogicToolbar({
 }: LogicToolbarProps) {
   if (present) {
     return (
-      <div className="logic-toolbar print:hidden sticky top-0 z-20 border-b border-[#e4e4e4] bg-white px-4 py-3 sm:px-6">
+      <div className={cn("logic-toolbar px-4 py-3 sm:px-6", boardToolbar)}>
         <div className="mx-auto flex max-w-[1400px] flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.08em] text-primary">
               Plan & approvals
             </p>
-            <p className="text-sm text-[#5c5c5c]">{decisionLabel}</p>
+            <p className={cn("text-sm", boardMuted)}>{decisionLabel}</p>
           </div>
           <LogicNav present full={false} />
           <div className="flex items-center gap-2">
@@ -51,7 +53,7 @@ export function LogicToolbar({
             <button
               type="button"
               onClick={() => onPresentChange(false)}
-              className="rounded-full border border-[#e4e4e4] bg-white px-3.5 py-1.5 text-sm text-[#1a1a1a] hover:bg-[#f7f7f7]"
+              className={cn("px-3.5 py-1.5", boardChip)}
             >
               Edit
             </button>
@@ -62,14 +64,14 @@ export function LogicToolbar({
   }
 
   return (
-    <div className="logic-toolbar print:hidden sticky top-0 z-20 border-b border-[#e4e4e4] bg-white/95 px-4 py-3 backdrop-blur sm:px-6">
+    <div className={cn("logic-toolbar px-4 py-3 sm:px-6", boardToolbar)}>
       <div className="mx-auto flex max-w-[1400px] flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-semibold text-[#1a1a1a]">
+            <p className={cn("text-sm font-semibold", boardTitle)}>
               {locked ? "Locked" : full ? "Full detail" : "Plan & approvals"}
             </p>
-            <p className="text-xs text-[#888]">
+            <p className={cn("text-xs", boardFaint)}>
               {formatSavedAt(savedAt, now)} · {decisionLabel}
             </p>
           </div>
@@ -77,7 +79,7 @@ export function LogicToolbar({
             <button
               type="button"
               onClick={() => onFullChange(!full)}
-              className="rounded-full border border-[#e4e4e4] bg-white px-3 py-1.5 text-sm text-[#1a1a1a] hover:bg-[#f7f7f7]"
+              className={cn("px-3 py-1.5", boardChip)}
             >
               {full ? "Plan" : "Full details"}
             </button>
@@ -88,7 +90,7 @@ export function LogicToolbar({
             <button
               type="button"
               onClick={() => onPresentChange(true)}
-              className="rounded-full border border-[#e4e4e4] bg-white px-3.5 py-1.5 text-sm text-[#1a1a1a] hover:bg-[#f7f7f7]"
+              className={cn("px-3.5 py-1.5", boardChip)}
             >
               Done
             </button>
@@ -116,7 +118,10 @@ function ToolbarButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="inline-flex items-center gap-1.5 rounded-full border border-[#e4e4e4] bg-white px-3 py-1.5 text-sm text-[#1a1a1a] hover:bg-[#f7f7f7] disabled:cursor-not-allowed disabled:opacity-40"
+      className={cn(
+        "inline-flex items-center gap-1.5 px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-40",
+        boardChip
+      )}
     >
       <Icon className="h-3.5 w-3.5" />
       {label}

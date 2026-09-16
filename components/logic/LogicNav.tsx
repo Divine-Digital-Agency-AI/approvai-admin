@@ -1,5 +1,6 @@
 "use client";
 
+import { boardNavChip, boardNavChipPresent } from "@/lib/themed-surfaces";
 import { cn } from "@/lib/utils";
 
 export const PLAN_SECTIONS = [
@@ -43,9 +44,7 @@ export function LogicNav({ present, full = false }: LogicNavProps) {
           onClick={() => scrollToLogicSection(section.id)}
           className={cn(
             "rounded-full px-3 py-1.5 text-sm",
-            present
-              ? "bg-white text-[#1a1a1a] shadow-sm hover:bg-[#edf5fc]"
-              : "border border-[#e4e4e4] bg-white text-[#1a1a1a] hover:bg-[#f7f7f7]"
+            present ? boardNavChipPresent : boardNavChip
           )}
         >
           {section.label}
