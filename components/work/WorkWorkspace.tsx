@@ -104,7 +104,7 @@ export function WorkWorkspace() {
     const params = new URLSearchParams();
     if (next !== "now") params.set("view", next);
     if (next === "all" && stageFilter) params.set("stage", stageFilter);
-    router.replace(params.size ? `/phase-3/now?${params.toString()}` : "/phase-3/now");
+    router.replace(params.size ? `/project-overview/now?${params.toString()}` : "/project-overview/now");
   };
 
   if (!ready) {

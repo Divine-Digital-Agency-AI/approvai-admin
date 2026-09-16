@@ -4,6 +4,13 @@ import path from "path";
 const nextConfig: NextConfig = {
   output: 'standalone',
 
+  async redirects() {
+    return [
+      { source: "/phase-3", destination: "/project-overview", permanent: true },
+      { source: "/phase-3/:path*", destination: "/project-overview/:path*", permanent: true },
+    ];
+  },
+
   turbopack: {
     root: path.resolve(__dirname, '..'),
   },

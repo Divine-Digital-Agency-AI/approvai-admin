@@ -27,9 +27,9 @@ export interface NavGroup {
 }
 
 export const LIVE_PAGES = {
-  home: { href: "/phase-3", label: "Project overview" },
-  plan: { href: "/phase-3/plan", label: "Plan & approvals" },
-  now: { href: "/phase-3/now", label: "Delivery status" },
+  home: { href: "/project-overview", label: "Project overview" },
+  plan: { href: "/project-overview/plan", label: "Plan & approvals" },
+  now: { href: "/project-overview/now", label: "Delivery status" },
 } as const;
 
 export const NAV_GROUPS: NavGroup[] = [
@@ -69,6 +69,6 @@ export const NAV_GROUPS: NavGroup[] = [
 export function isNavActive(pathname: string | null | undefined, href: string): boolean {
   if (!pathname) return false;
   if (href === "/") return pathname === "/";
-  if (href === "/phase-3") return pathname === "/phase-3";
+  if (href === "/project-overview") return pathname === "/project-overview";
   return pathname === href || pathname.startsWith(`${href}/`);
 }

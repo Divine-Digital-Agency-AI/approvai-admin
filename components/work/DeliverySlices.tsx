@@ -32,7 +32,7 @@ export function DeliverySlices({ tasks, present }: { tasks: WorkTask[]; present:
           return (
             <li key={step.name}>
               <Link
-                href={`/phase-3/now?view=all#work-${workGroupId(step.name)}`}
+                href={`/project-overview/now?view=all#work-${workGroupId(step.name)}`}
                 className={cn(
                   "flex h-full gap-3 rounded-xl border p-4 hover:border-primary/40",
                   boardHairline,

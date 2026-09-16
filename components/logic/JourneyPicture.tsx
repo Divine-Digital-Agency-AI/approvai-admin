@@ -65,7 +65,7 @@ export function JourneyPicture({ stages }: JourneyPictureProps) {
               </button>
               {progress && (
                 <Link
-                  href={`/phase-3/now?view=all&stage=${stage.id}`}
+                  href={`/project-overview/now?view=all&stage=${stage.id}`}
                   className="mt-1 rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-medium text-white hover:bg-white/25"
                   title={`Open ${stripStageNumber(stage.title)} work`}
                 >
