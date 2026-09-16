@@ -28,7 +28,7 @@ export interface NavGroup {
 
 export const LIVE_PAGES = {
   home: { href: "/project-overview", label: "Project overview" },
-  plan: { href: "/project-overview/plan", label: "Plan & approvals" },
+  plan: { href: "/plan-approvals", label: "Plan & approvals" },
   now: { href: "/project-overview/now", label: "Delivery status" },
 } as const;
 
