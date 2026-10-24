@@ -98,3 +98,25 @@ export function matchesSearch(job: SearchableJob, query: string): boolean {
   return [job.name, job.address, job.client_name, job.profiles?.email, person]
     .some((field) => (field || "").toLowerCase().includes(q));
 }
+
+export interface JobSummary {
+  activeThisWeek: number;
+  quiet: number;
+  stuck: number;
+  prepared: number;
+  applied: number;
+}
+
+/** Where jobs stand, as plain counts for the dashboard. */
+export function summarizeJobs(jobs: { stage: Stage; lastActivity: string | null }[], now: number = Date.now()): JobSummary {
+  const summary: JobSummary = { activeThisWeek: 0, quiet: 0, stuck: 0, prepared: 0, applied: 0 };
+  for (const job of jobs) {
+    const last = job.lastActivity ? Date.parse(job.lastActivity) : NaN;
+    if (!Number.isNaN(last) && now - last < QUIET_AFTER_DAYS * DAY) summary.activeThisWeek += 1;
+    if (job.stage.quietDays !== null) summary.quiet += 1;
+    if (job.stage.label === "Plan Review stuck") summary.stuck += 1;
+    if (job.stage.label === "Application prepared") summary.prepared += 1;
+    if (job.stage.label === "Applied") summary.applied += 1;
+  }
+  return summary;
+}

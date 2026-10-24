@@ -4,7 +4,7 @@ import {
   requireAdminRoleFromBearerToken,
 } from "@/app/api/admin/_lib/auth";
 import { authErrorStatus, jsonError } from "@/app/api/admin/_lib/http";
-import { jobStage } from "@/lib/job-stage";
+import { jobFacts } from "@/app/api/admin/_lib/job-stages";
 
 type PatchBody = { projectId?: string; status?: string };
 type DeleteBody = { projectId?: string };
@@ -33,59 +33,13 @@ export async function GET(req: Request) {
 
     const profileMap = new Map((profiles || []).map((p) => [p.user_id, p]));
 
-    const { data: blueprints } = await supabase.from("blueprints").select("project_id, status, updated_at");
-    const bpMap: Record<string, number> = {};
-    const bpLatest: Record<string, { status: string; updated_at: string | null }> = {};
-    for (const bp of blueprints || []) {
-      if (!bp.project_id) continue;
-      bpMap[bp.project_id] = (bpMap[bp.project_id] || 0) + 1;
-      const seen = bpLatest[bp.project_id];
-      if (!seen || String(bp.updated_at || "") > String(seen.updated_at || "")) {
-        bpLatest[bp.project_id] = { status: bp.status, updated_at: bp.updated_at };
-      }
-    }
-
-    // Where each job stands with Ant (24 Oct 2026): its newest chat message, and whether Ant prepared an application.
-    const { data: threads } = await supabase.from("ant_threads").select("id, project_id").not("project_id", "is", null);
-    const threadProject = new Map((threads || []).map((t) => [t.id as string, t.project_id as string]));
-    const threadIds = [...threadProject.keys()];
-    const lastActivity: Record<string, string> = {};
-    const prepared = new Set<string>();
-    if (threadIds.length) {
-      const { data: recent } = await supabase
-        .from("ant_messages")
-        .select("thread_id, created_at")
-        .in("thread_id", threadIds)
-        .order("created_at", { ascending: false })
-        .limit(5000);
-      for (const m of recent || []) {
-        const project = threadProject.get(m.thread_id as string);
-        if (project && !lastActivity[project]) lastActivity[project] = m.created_at as string;
-      }
-      const { data: applications } = await supabase
-        .from("ant_messages")
-        .select("thread_id")
-        .in("thread_id", threadIds)
-        .not("metadata->application", "is", null)
-        .limit(2000);
-      for (const m of applications || []) {
-        const project = threadProject.get(m.thread_id as string);
-        if (project) prepared.add(project);
-      }
-    }
+    const facts = await jobFacts(supabase, projects || []);
 
     const rows = (projects || []).map((p) => {
       const profile = profileMap.get(p.user_id);
       return {
         ...p,
-        blueprintCount: bpMap[p.id] || 0,
-        lastActivity: lastActivity[p.id] || null,
-        stage: jobStage({
-          intake: p.intake_data,
-          blueprint: bpLatest[p.id] || null,
-          lastActivity: lastActivity[p.id] || null,
-          applicationPrepared: prepared.has(p.id),
-        }),
+        ...facts.get(p.id),
         profiles: profile
           ? {
               email: profile.email,

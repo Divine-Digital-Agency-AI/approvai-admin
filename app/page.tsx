@@ -9,6 +9,8 @@ import {
   Users, FolderKanban, Building2, FileSearch, MailPlus, AlertTriangle,
   Cpu, TrendingUp, Activity
 } from "lucide-react";
+import type { JobSummary } from "@/lib/job-stage";
+import Link from "next/link";
 import { adminCardBorder, adminMuted, adminPagePad, adminSectionLabel } from "@/lib/themed-surfaces";
 import { cn } from "@/lib/utils";
 
@@ -75,6 +77,7 @@ export default function AdminDashboard() {
   const [activity, setActivity] = useState<RecentActivity[]>([]);
   const [loadingStats, setLoadingStats] = useState(true);
   const [statsError, setStatsError] = useState("");
+  const [jobs, setJobs] = useState<JobSummary | null>(null);
 
   useEffect(() => {
     if (!loading && !admin) {
@@ -101,6 +104,7 @@ export default function AdminDashboard() {
             earlyAccessRequests: number;
             successfulExtractions: number;
           };
+          jobs?: JobSummary;
           recentActivity?: {
             id: string;
             kind: string;
@@ -114,6 +118,7 @@ export default function AdminDashboard() {
           throw new Error(payload.error || "Failed to fetch dashboard stats.");
         }
 
+        setJobs(payload.jobs ?? null);
         setStats({
           totalUsers: payload.stats.totalUsers,
           totalProjects: payload.stats.totalProjects,
@@ -195,6 +200,26 @@ export default function AdminDashboard() {
         </h1>
         <p className={cn(adminMuted, "mt-1")}>Welcome back, {admin.authUser.email}</p>
       </div>
+
+      {jobs && (
+        <section aria-label="Where jobs stand" className="space-y-2">
+          <h2 className={adminSectionLabel}>Where jobs stand</h2>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+            {[
+              { label: "Active this week", value: jobs.activeThisWeek, href: "/projects" },
+              { label: "Quiet 7+ days", value: jobs.quiet, href: "/projects?quiet=1" },
+              { label: "Plan Review stuck", value: jobs.stuck, href: "/projects" },
+              { label: "Application prepared", value: jobs.prepared, href: "/projects" },
+              { label: "Applied", value: jobs.applied, href: "/projects" },
+            ].map((item) => (
+              <Link key={item.label} href={item.href} className={cn(adminCardBorder, "block min-h-11 hover:border-primary/40")}>
+                <p className={adminMuted}>{item.label}</p>
+                <p className="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">{item.value}</p>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         <StatCard label="Total Users" value={stats.totalUsers} icon={Users} color="bg-primary/10 text-primary" />

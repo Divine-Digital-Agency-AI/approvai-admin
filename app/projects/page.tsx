@@ -55,6 +55,11 @@ export default function ProjectsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [quietOnly, setQuietOnly] = useState(false);
+
+  useEffect(() => {
+    // The dashboard's "Quiet 7+ days" opens this list already filtered.
+    if (new URLSearchParams(window.location.search).get("quiet") === "1") setQuietOnly(true);
+  }, []);
   const [expandedProject, setExpandedProject] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
   const [deleting, setDeleting] = useState(false);

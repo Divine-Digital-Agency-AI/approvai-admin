@@ -4,6 +4,8 @@ import {
   requireAdminRoleFromBearerToken,
 } from "@/app/api/admin/_lib/auth";
 import { authErrorStatus, jsonError } from "@/app/api/admin/_lib/http";
+import { jobFacts } from "@/app/api/admin/_lib/job-stages";
+import { summarizeJobs } from "@/lib/job-stage";
 
 export async function GET(req: Request) {
   try {
@@ -56,6 +58,9 @@ export async function GET(req: Request) {
         .limit(5),
     ]);
 
+    const { data: allJobs } = await supabase.from("projects").select("id, intake_data");
+    const jobs = summarizeJobs([...(await jobFacts(supabase, allJobs || [])).values()]);
+
     const failedExtractions = failedBps.count ?? 0;
     const successfulExtractions = processedBps.count ?? 0;
     const successRate =
@@ -101,6 +106,7 @@ export async function GET(req: Request) {
     recent.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
 
     return NextResponse.json({
+      jobs,
       stats: {
         totalUsers: users.count ?? 0,
         totalProjects: projects.count ?? 0,
