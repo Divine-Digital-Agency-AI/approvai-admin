@@ -49,7 +49,7 @@ export default function AdminLoginPage() {
         type="button"
         onClick={toggleTheme}
         className={cn(
-          "absolute top-4 right-4 z-10 flex h-8 w-8 items-center justify-center rounded-[10px]",
+          "absolute top-4 right-4 z-10 flex h-8 w-8 items-center justify-center rounded-[10px] [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11",
           "border border-[#d4d4d4] bg-white/80 text-[#666666] backdrop-blur-sm",
           "hover:bg-[#f0f0f0] dark:border-[#333333] dark:bg-[#1a1a1a]/80 dark:text-[#7f7f7f] dark:hover:bg-[#262626]"
         )}
@@ -118,7 +118,7 @@ export default function AdminLoginPage() {
             <button
               type="button"
               onClick={() => setShowForgot(true)}
-              className="text-sm font-medium text-primary hover:text-primary/80"
+              className="inline-flex items-center text-sm font-medium text-primary hover:text-primary/80 [@media(pointer:coarse)]:min-h-11"
             >
               Forgot password?
             </button>
@@ -128,7 +128,7 @@ export default function AdminLoginPage() {
             type="submit"
             isLoading={isLoading}
             variant="primary"
-            className="group/btn w-full gap-2"
+            className="group/btn w-full gap-2 [@media(pointer:coarse)]:min-h-11"
             disabled={!email || !password}
           >
             Sign In
