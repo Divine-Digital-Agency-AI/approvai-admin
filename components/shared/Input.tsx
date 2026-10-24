@@ -4,6 +4,7 @@ import {
   InputHTMLAttributes,
   TextareaHTMLAttributes,
   forwardRef,
+  useId,
   useState,
 } from "react";
 import { Eye, EyeOff } from "lucide-react";
@@ -32,9 +33,13 @@ const Input = forwardRef<HTMLInputElement | HTMLTextAreaElement, CombinedInputPr
     const isPassword =
       !isTextarea && (props as InputHTMLAttributes<HTMLInputElement>).type === "password";
     const [revealed, setRevealed] = useState(false);
+    // The label points at the field even when the page gives no id (24 Oct 2026: no admin page did, so a screen
+    // reader named no field, the sign-in's email and password included).
+    const autoId = useId();
+    const id = props.id ?? autoId;
 
     const baseStyles =
-      "w-full px-4 py-2 bg-background border border-surface/50 rounded-lg text-foreground placeholder-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
+      "w-full px-4 py-2 bg-background border border-surface/50 rounded-lg text-foreground placeholder-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed [@media(pointer:coarse)]:min-h-11";
 
     const errorStyles = error
       ? "border-red-400 focus:ring-red-400 focus:border-red-400"
@@ -49,6 +54,7 @@ const Input = forwardRef<HTMLInputElement | HTMLTextAreaElement, CombinedInputPr
         ref={ref as React.Ref<HTMLTextAreaElement>}
         className={inputClasses}
         {...(props as TextareaHTMLAttributes<HTMLTextAreaElement>)}
+        id={id}
       />
     ) : (
       <div className={isPassword ? "relative" : undefined}>
@@ -56,6 +62,7 @@ const Input = forwardRef<HTMLInputElement | HTMLTextAreaElement, CombinedInputPr
           ref={ref as React.Ref<HTMLInputElement>}
           className={inputClasses}
           {...(props as InputHTMLAttributes<HTMLInputElement>)}
+          id={id}
           type={
             isPassword
               ? revealed
@@ -68,7 +75,7 @@ const Input = forwardRef<HTMLInputElement | HTMLTextAreaElement, CombinedInputPr
           <button
             type="button"
             onClick={() => setRevealed((v) => !v)}
-            className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-[8px] text-[#666666] transition-colors hover:bg-[#f0f0f0] hover:text-[#1a1a1a] dark:text-[#7f7f7f] dark:hover:bg-[#262626] dark:hover:text-white"
+            className="absolute right-2 top-1/2 flex h-8 w-8 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11 -translate-y-1/2 items-center justify-center rounded-[8px] text-[#666666] transition-colors hover:bg-[#f0f0f0] hover:text-[#1a1a1a] dark:text-[#7f7f7f] dark:hover:bg-[#262626] dark:hover:text-white"
             aria-label={revealed ? "Hide password" : "Show password"}
             title={revealed ? "Hide password" : "Show password"}
             tabIndex={0}
@@ -88,7 +95,7 @@ const Input = forwardRef<HTMLInputElement | HTMLTextAreaElement, CombinedInputPr
         <div className="w-full">
           {label && (
             <label
-              htmlFor={props.id}
+              htmlFor={id}
               className="mb-2 block text-sm font-medium text-foreground"
             >
               {label}
