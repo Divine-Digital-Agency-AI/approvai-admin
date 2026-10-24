@@ -10,6 +10,8 @@ import ConfirmModal from "@/components/shared/ConfirmModal";
 import Pagination, { usePagination } from "@/components/shared/Pagination";
 import { Search, FolderKanban, Trash2, ChevronDown } from "lucide-react";
 import { getProjectStatusLabel } from "@/lib/project-status";
+import { matchesSearch, type Stage } from "@/lib/job-stage";
+import { AntChatPanel } from "@/components/AntChatPanel";
 
 interface Project {
   id: string;
@@ -25,7 +27,16 @@ interface Project {
   updated_at: string;
   profiles?: { email: string | null; first_name: string | null; last_name: string | null } | null;
   blueprintCount?: number;
+  lastActivity?: string | null;
+  stage?: Stage;
 }
+
+const toneColors: Record<string, string> = {
+  good: "text-green-700 dark:text-green-400",
+  wait: "text-amber-700 dark:text-amber-400",
+  bad: "text-red-600 dark:text-red-400",
+  muted: "text-gray-500 dark:text-gray-400",
+};
 
 const statusColors: Record<string, string> = {
   created: "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300",
@@ -43,6 +54,7 @@ export default function ProjectsPage() {
   const [loadingData, setLoadingData] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [quietOnly, setQuietOnly] = useState(false);
   const [expandedProject, setExpandedProject] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -113,15 +125,11 @@ export default function ProjectsPage() {
   };
 
   const filtered = projects.filter((p) => {
-    const q = search.toLowerCase();
-    const matchesSearch =
-      p.name.toLowerCase().includes(q) ||
-      (p.address || "").toLowerCase().includes(q) ||
-      (p.profiles?.email || "").toLowerCase().includes(q) ||
-      (p.client_name || "").toLowerCase().includes(q);
     const matchesStatus = statusFilter === "all" || p.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesQuiet = !quietOnly || (p.stage?.quietDays ?? null) !== null;
+    return matchesSearch(p, search) && matchesStatus && matchesQuiet;
   });
+  const quietCount = projects.filter((p) => (p.stage?.quietDays ?? null) !== null).length;
 
   const { currentPage, setCurrentPage, paginatedItems, totalItems, pageSize } = usePagination(filtered);
 
@@ -165,27 +173,38 @@ export default function ProjectsPage() {
               : `${getProjectStatusLabel(status)} (${statusCounts[status] || 0})`}
           </button>
         ))}
+        <button
+          onClick={() => setQuietOnly(!quietOnly)}
+          aria-pressed={quietOnly}
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+            quietOnly
+              ? "bg-amber-500 text-white"
+              : "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 hover:bg-amber-100"
+          }`}
+        >
+          Quiet 7+ days ({quietCount})
+        </button>
       </div>
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
         <Input
           type="text"
-          placeholder="Search by name, address, owner, or client..."
+          placeholder="Search by job, address, person's name, email or client..."
           value={search}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
           className="pl-10"
         />
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-x-auto">
+        <table className="w-full min-w-[720px] text-sm">
           <thead>
             <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
               <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Name</th>
               <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Owner</th>
               <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Status</th>
-              <th className="text-center px-4 py-3 font-medium text-gray-500 dark:text-gray-400">BPs</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Where it stands</th>
               <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Created</th>
               <th className="text-right px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Actions</th>
             </tr>
@@ -202,7 +221,12 @@ export default function ProjectsPage() {
                     {project.address && <div className="text-xs text-gray-500 dark:text-gray-400">{project.address}</div>}
                   </td>
                   <td className="px-4 py-3 text-gray-600 dark:text-gray-300">
-                    {project.profiles?.email || project.user_id.slice(0, 8) + "..."}
+                    {[project.profiles?.first_name, project.profiles?.last_name].filter(Boolean).join(" ") && (
+                      <div className="text-gray-900 dark:text-white">
+                        {[project.profiles?.first_name, project.profiles?.last_name].filter(Boolean).join(" ")}
+                      </div>
+                    )}
+                    <div className="text-xs">{project.profiles?.email || project.user_id.slice(0, 8) + "..."}</div>
                   </td>
                   <td className="px-4 py-3">
                     <select
@@ -221,8 +245,17 @@ export default function ProjectsPage() {
                       ))}
                     </select>
                   </td>
-                  <td className="px-4 py-3 text-center text-gray-600 dark:text-gray-300">
-                    {project.blueprintCount ?? 0}
+                  <td className="px-4 py-3">
+                    {project.stage ? (
+                      <>
+                        <div className={`font-medium ${toneColors[project.stage.tone] || toneColors.muted}`}>
+                          {project.stage.label}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">{project.stage.why}</div>
+                      </>
+                    ) : (
+                      <span className="text-gray-400">—</span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
                     {new Date(project.created_at).toLocaleDateString()}
@@ -270,7 +303,18 @@ export default function ProjectsPage() {
                             {new Date(project.updated_at).toLocaleString()}
                           </span>
                         </div>
+                        <div>
+                          <span className="text-gray-500 dark:text-gray-400 block text-xs">Last chat with Ant</span>
+                          <span className="text-gray-700 dark:text-gray-300">
+                            {project.lastActivity ? new Date(project.lastActivity).toLocaleString() : "Never"}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 dark:text-gray-400 block text-xs">Blueprints</span>
+                          <span className="text-gray-700 dark:text-gray-300">{project.blueprintCount ?? 0}</span>
+                        </div>
                       </div>
+                      <AntChatPanel projectId={project.id} />
                     </td>
                   </tr>
                 )}
