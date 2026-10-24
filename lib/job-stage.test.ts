@@ -43,3 +43,15 @@ test("search finds a job by the person's own name too", () => {
   assert.ok(matchesSearch(job, "main st"));
   assert.ok(!matchesSearch(job, "jones"));
 });
+
+test("the dashboard counts where jobs stand, in plain words", async () => {
+  const { summarizeJobs } = await import("./job-stage.ts");
+  const jobs = [
+    { stage: jobStage({ ...base, lastActivity: "2026-10-23T10:00:00Z" }), lastActivity: "2026-10-23T10:00:00Z" },
+    { stage: jobStage({ ...base, lastActivity: "2026-10-01T10:00:00Z" }), lastActivity: "2026-10-01T10:00:00Z" },
+    { stage: jobStage({ ...base, blueprint: { status: "extracting", updated_at: "2026-07-09T10:00:00Z" } }), lastActivity: base.lastActivity },
+    { stage: jobStage({ ...base, applicationPrepared: true }), lastActivity: base.lastActivity },
+    { stage: jobStage({ ...base, intake: { ant_next_steps: { steps: [{ key: "submit", done: true }] } } }), lastActivity: null },
+  ];
+  assert.deepEqual(summarizeJobs(jobs, NOW), { activeThisWeek: 3, quiet: 1, stuck: 1, prepared: 1, applied: 1 });
+});
